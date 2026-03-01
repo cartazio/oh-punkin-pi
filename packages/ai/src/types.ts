@@ -310,6 +310,11 @@ export interface OpenAIResponsesHistoryPayload {
 
 export type ProviderPayload = OpenAIResponsesHistoryPayload;
 
+export interface BracketId {
+	readonly sigil: string;
+	readonly nonce: string;
+}
+
 export interface UserMessage {
 	role: "user";
 	content: string | (TextContent | ImageContent)[];
@@ -320,6 +325,7 @@ export interface UserMessage {
 	/** Provider-specific opaque payload used to reconstruct transport-native history. */
 	providerPayload?: ProviderPayload;
 	timestamp: number; // Unix timestamp in milliseconds
+	bracketId?: BracketId;
 }
 
 export interface DeveloperMessage {
@@ -345,6 +351,7 @@ export interface AssistantMessage {
 	/** Provider-specific opaque payload used to reconstruct transport-native history. */
 	providerPayload?: ProviderPayload;
 	timestamp: number; // Unix timestamp in milliseconds
+	bracketId?: BracketId;
 	duration?: number; // Request duration in milliseconds
 	ttft?: number; // Time to first token in milliseconds
 }
