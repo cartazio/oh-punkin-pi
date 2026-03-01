@@ -13,7 +13,9 @@ import type {
 	ProviderPayload,
 	TextContent,
 	ToolResultMessage,
+	UserMessage,
 } from "@oh-my-pi/pi-ai";
+import { type WrapParams, wrapSystem, wrapUser } from "@oh-my-pi/pi-ai/role-boundary";
 import { renderPromptTemplate } from "../config/prompt-templates";
 import branchSummaryContextPrompt from "../prompts/compaction/branch-summary-context.md" with { type: "text" };
 import compactionSummaryContextPrompt from "../prompts/compaction/compaction-summary-context.md" with { type: "text" };
@@ -269,105 +271,190 @@ export function createCustomMessage(
  * - Custom extensions and tools
  */
 export function convertToLlm(messages: AgentMessage[]): Message[] {
-	return messages
-		.map((m): Message | undefined => {
-			switch (m.role) {
-				case "bashExecution":
-					if (m.excludeFromContext) {
-						return undefined;
-					}
-					return {
-						role: "user",
-						content: [{ type: "text", text: bashExecutionToText(m) }],
-						attribution: "user",
-						timestamp: m.timestamp,
+	const result: Message[] = [];
+	let turnIndex = 0;
+	let prevAssistantTimestamp: number | null = null;
+
+	for (const m of messages) {
+		let converted: Message | undefined;
+
+		switch (m.role) {
+			case "bashExecution":
+				if (m.excludeFromContext) {
+					converted = undefined;
+				} else {
+					turnIndex++;
+					const text = bashExecutionToText(m);
+					const params: WrapParams = {
+						timestamp: prevAssistantTimestamp ?? m.timestamp,
+						endTimestamp: m.timestamp,
+						turn: turnIndex,
 					};
-				case "pythonExecution":
-					if (m.excludeFromContext) {
-						return undefined;
-					}
-					return {
+					converted = {
 						role: "user",
-						content: [{ type: "text", text: pythonExecutionToText(m) }],
-						attribution: "user",
-						timestamp: m.timestamp,
-					};
-				case "custom":
-				case "hookMessage": {
-					const content = typeof m.content === "string" ? [{ type: "text" as const, text: m.content }] : m.content;
-					const role = "user";
-					const attribution = m.attribution;
-					return {
-						role,
-						content,
-						attribution,
-						timestamp: m.timestamp,
-					};
-				}
-				case "branchSummary":
-					return {
-						role: "user",
-						content: [
-							{
-								type: "text" as const,
-								text: renderPromptTemplate(BRANCH_SUMMARY_TEMPLATE, { summary: m.summary }),
-							},
-						],
-						attribution: "agent",
-						timestamp: m.timestamp,
-					};
-				case "compactionSummary":
-					return {
-						role: "user",
-						content: [
-							{
-								type: "text" as const,
-								text: renderPromptTemplate(COMPACTION_SUMMARY_TEMPLATE, { summary: m.summary }),
-							},
-						],
-						attribution: "agent",
-						providerPayload: m.providerPayload,
-						timestamp: m.timestamp,
-					};
-				case "fileMention": {
-					const fileContents = m.files
-						.map(file => {
-							const inner = file.content ? `\n${file.content}\n` : "\n";
-							return `<file path="${file.path}">${inner}</file>`;
-						})
-						.join("\n\n");
-					const content: (TextContent | ImageContent)[] = [
-						{ type: "text" as const, text: `<system-reminder>\n${fileContents}\n</system-reminder>` },
-					];
-					for (const file of m.files) {
-						if (file.image) {
-							content.push(file.image);
-						}
-					}
-					return {
-						role: "user",
-						content,
+						content: [{ type: "text", text: wrapUser(text, params) }],
 						attribution: "user",
 						timestamp: m.timestamp,
 					};
 				}
-				case "user":
-					return { ...m, attribution: m.attribution ?? "user" };
-				case "developer":
-					return { ...m, attribution: m.attribution ?? "agent" };
-				case "assistant":
-					return m;
-				case "toolResult":
-					return {
-						...m,
-						content: getPrunedToolResultContent(m as ToolResultMessage),
-						attribution: m.attribution ?? "agent",
+				break;
+			case "pythonExecution":
+				if (m.excludeFromContext) {
+					converted = undefined;
+				} else {
+					turnIndex++;
+					const text = pythonExecutionToText(m);
+					const params: WrapParams = {
+						timestamp: prevAssistantTimestamp ?? m.timestamp,
+						endTimestamp: m.timestamp,
+						turn: turnIndex,
 					};
-				default:
-					// biome-ignore lint/correctness/noSwitchDeclarations: fine
-					const _exhaustiveCheck: never = m;
-					return undefined;
+					converted = {
+						role: "user",
+						content: [{ type: "text", text: wrapUser(text, params) }],
+						attribution: "user",
+						timestamp: m.timestamp,
+					};
+				}
+				break;
+			case "custom":
+			case "hookMessage": {
+				turnIndex++;
+				const rawContent =
+					typeof m.content === "string"
+						? m.content
+						: m.content.map(c => (c.type === "text" ? c.text : "")).join("");
+				const params: WrapParams = {
+					timestamp: prevAssistantTimestamp ?? m.timestamp,
+					endTimestamp: m.timestamp,
+					turn: turnIndex,
+				};
+				const wrappedText = wrapUser(rawContent, params);
+				const content: (TextContent | ImageContent)[] = [{ type: "text", text: wrappedText }];
+				if (typeof m.content !== "string") {
+					for (const c of m.content) {
+						if (c.type === "image") content.push(c);
+					}
+				}
+				converted = {
+					role: "user",
+					content,
+					attribution: m.attribution,
+					timestamp: m.timestamp,
+				};
+				break;
 			}
-		})
-		.filter(m => m !== undefined);
+			case "branchSummary": {
+				turnIndex++;
+				const text = renderPromptTemplate(BRANCH_SUMMARY_TEMPLATE, { summary: m.summary });
+				const params: WrapParams = {
+					timestamp: prevAssistantTimestamp ?? m.timestamp,
+					endTimestamp: m.timestamp,
+					turn: turnIndex,
+				};
+				converted = {
+					role: "user",
+					content: [{ type: "text", text: wrapSystem(text, params) }],
+					attribution: "agent",
+					timestamp: m.timestamp,
+				};
+				break;
+			}
+			case "compactionSummary": {
+				turnIndex++;
+				const text = renderPromptTemplate(COMPACTION_SUMMARY_TEMPLATE, { summary: m.summary });
+				const params: WrapParams = {
+					timestamp: prevAssistantTimestamp ?? m.timestamp,
+					endTimestamp: m.timestamp,
+					turn: turnIndex,
+				};
+				converted = {
+					role: "user",
+					content: [{ type: "text", text: wrapSystem(text, params) }],
+					attribution: "agent",
+					providerPayload: m.providerPayload,
+					timestamp: m.timestamp,
+				};
+				break;
+			}
+			case "fileMention": {
+				turnIndex++;
+				const fileContents = m.files
+					.map(file => {
+						const inner = file.content ? `\n${file.content}\n` : "\n";
+						return `<file path="${file.path}">${inner}</file>`;
+					})
+					.join("\n\n");
+				const text = `<system-reminder>\n${fileContents}\n</system-reminder>`;
+				const params: WrapParams = {
+					timestamp: prevAssistantTimestamp ?? m.timestamp,
+					endTimestamp: m.timestamp,
+					turn: turnIndex,
+				};
+				const content: (TextContent | ImageContent)[] = [{ type: "text", text: wrapSystem(text, params) }];
+				for (const file of m.files) {
+					if (file.image) content.push(file.image);
+				}
+				converted = {
+					role: "user",
+					content,
+					attribution: "user",
+					timestamp: m.timestamp,
+				};
+				break;
+			}
+			case "user": {
+				turnIndex++;
+				const rawContent =
+					typeof m.content === "string"
+						? m.content
+						: m.content.map(c => (c.type === "text" ? c.text : "")).join("");
+				const params: WrapParams = {
+					timestamp: prevAssistantTimestamp ?? m.timestamp,
+					endTimestamp: m.timestamp,
+					turn: turnIndex,
+				};
+				const wrappedText = wrapUser(rawContent, params);
+				const content: (TextContent | ImageContent)[] = [{ type: "text", text: wrappedText }];
+				if (typeof m.content !== "string") {
+					for (const c of m.content) {
+						if (c.type === "image") content.push(c);
+					}
+				}
+				converted = {
+					...m,
+					content,
+					attribution: m.attribution ?? "user",
+					providerPayload: m.providerPayload,
+					timestamp: m.timestamp,
+					synthetic: (m as UserMessage).synthetic,
+				};
+				break;
+			}
+			case "developer":
+				converted = { ...m, attribution: m.attribution ?? "agent" };
+				break;
+			case "assistant":
+				prevAssistantTimestamp = m.timestamp;
+				converted = m;
+				break;
+			case "toolResult":
+				converted = {
+					...m,
+					content: getPrunedToolResultContent(m as ToolResultMessage),
+					attribution: m.attribution ?? "agent",
+				};
+				break;
+			default: {
+				const _exhaustiveCheck: never = m;
+				converted = undefined;
+			}
+		}
+
+		if (converted !== undefined) {
+			result.push(converted);
+		}
+	}
+
+	return result;
 }

@@ -48,6 +48,7 @@ import { RenderMermaidTool } from "./render-mermaid";
 import { ResolveTool } from "./resolve";
 import { reportFindingTool } from "./review";
 import { SearchToolBm25Tool } from "./search-tool-bm25";
+import { CloseSquiggleTool, OpenSquiggleTool } from "./squiggle";
 import { loadSshTool } from "./ssh";
 import { SubmitResultTool } from "./submit-result";
 import { type TodoPhase, TodoWriteTool } from "./todo-write";
@@ -85,6 +86,7 @@ export * from "./render-mermaid";
 export * from "./resolve";
 export * from "./review";
 export * from "./search-tool-bm25";
+export * from "./squiggle";
 export * from "./ssh";
 export * from "./submit-result";
 export * from "./todo-write";
@@ -220,6 +222,8 @@ export const BUILTIN_TOOLS: Record<string, ToolFactory> = {
 	web_search: s => new SearchTool(s),
 	search_tool_bm25: SearchToolBm25Tool.createIf,
 	write: s => new WriteTool(s),
+	open_squiggle: s => new OpenSquiggleTool(s),
+	close_squiggle: s => new CloseSquiggleTool(s),
 };
 
 export const HIDDEN_TOOLS: Record<string, ToolFactory> = {
