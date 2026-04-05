@@ -16,17 +16,15 @@ import Bun from "bun";
 import bootSequence from "./boot-sequence.md" with { type: "text" };
 import ethos from "./ethos.md" with { type: "text" };
 import handleTools from "./handle-tools.md" with { type: "text" };
-import pressureCritical from "./pressure-critical.md" with { type: "text" };
-import pressureHigh from "./pressure-high.md" with { type: "text" };
-import pressureMedium from "./pressure-medium.md" with { type: "text" };
+
+// import pressureCritical from "./pressure-critical.md" with { type: "text" };
+// import pressureHigh from "./pressure-high.md" with { type: "text" };
+// import pressureMedium from "./pressure-medium.md" with { type: "text" }/;
 
 const EMBEDDED_TEMPLATES: Record<string, string> = {
 	"boot-sequence.md": bootSequence,
 	"ethos.md": ethos,
 	"handle-tools.md": handleTools,
-	"pressure-critical.md": pressureCritical,
-	"pressure-high.md": pressureHigh,
-	"pressure-medium.md": pressureMedium,
 };
 
 // ============================================================================
@@ -51,9 +49,6 @@ function loadHashRegistry(): HashRegistry {
 			"boot-sequence.md": "0ea8fcf4dcf8",
 			"ethos.md": "40324520911e",
 			"handle-tools.md": "ee345e32ddd8",
-			"pressure-critical.md": "10f72385b77e",
-			"pressure-high.md": "b3c3503d588d",
-			"pressure-medium.md": "e0cb18e0fb89",
 		},
 	};
 }

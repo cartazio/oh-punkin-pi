@@ -26,7 +26,6 @@ import { loadTemplate } from "./prompts/loader.js";
 import type { Store } from "./store.js";
 import { closeStore, getBlobContent, openStore } from "./store.js";
 import type { ContentHash, HandleId } from "./types.js";
-import { pressureLevel } from "./types.js";
 
 // Template hashes now live in prompts/hashes.toml — not here.
 
@@ -102,19 +101,12 @@ export function interceptToolCall(rt: CarterKitRuntime, toolName: string, args: 
  *
  * Called AFTER a tool executes. Captures result to store,
  * returns either the full result or a handle summary depending
- * on materialization budget.
+ * on size.
  */
-export function interceptToolResult(
-	rt: CarterKitRuntime,
-	handleId: HandleId,
-	resultText: string,
-	contextTokens: number,
-	contextWindow: number,
-): string {
+export function interceptToolResult(rt: CarterKitRuntime, handleId: HandleId, resultText: string): string {
 	if (!rt.enabled) return resultText;
 
-	const pressure = pressureLevel(contextTokens, contextWindow);
-	const captured = captureResult(rt.store, handleId, resultText, pressure, rt.turnIndex);
+	const captured = captureResult(rt.store, handleId, resultText, rt.turnIndex);
 
 	switch (captured.tag) {
 		case "Materialized":
@@ -143,32 +135,6 @@ export function onTurnEnd(rt: CarterKitRuntime, message: AgentMessage): void {
 		rt.cotByTurn.set(rt.turnIndex, cotHash);
 	}
 	rt.turnIndex++;
-}
-
-// ============================================================================
-// Context pressure
-// ============================================================================
-
-/**
- * pressureWarning :: Int -> Int -> Maybe Text
- *
- * Returns a system prompt injection if context pressure is elevated.
- * The model should know it's running low on context so it can
- * be more concise and use handles instead of materializing.
- */
-export function pressureWarning(contextTokens: number, contextWindow: number): string | undefined {
-	const pressure = pressureLevel(contextTokens, contextWindow);
-
-	switch (pressure) {
-		case "Low":
-			return undefined;
-		case "Medium":
-			return loadTemplate("pressure-medium.md").trim();
-		case "High":
-			return loadTemplate("pressure-high.md").trim();
-		case "Critical":
-			return loadTemplate("pressure-critical.md").trim();
-	}
 }
 
 // ============================================================================

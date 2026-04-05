@@ -341,50 +341,15 @@ export interface CompactionEvent {
 	readonly tokensFreed: number;
 	readonly rerollCost: number;
 	readonly cloneSessionId: string | undefined;
-	readonly pressureBefore: number;
-	readonly pressureAfter: number;
+	// readonly pressureBefore: number;
+	// readonly pressureAfter: number;
 	readonly createdAt: number;
 }
 
-// ============================================================================
-// Context pressure
-// ============================================================================
-
 /**
- * data PressureLevel = Low | Medium | High | Critical
- *
- * Low:      < 50% context used
- * Medium:   50-75%
- * High:     75-90%
- * Critical: > 90%
+ * Materialization budget per turn (tokens).
  */
-export type PressureLevel = "Low" | "Medium" | "High" | "Critical";
-
-export function pressureLevel(used: number, total: number): PressureLevel {
-	const ratio = used / total;
-	if (ratio < 0.5) return "Low";
-	if (ratio < 0.75) return "Medium";
-	if (ratio < 0.9) return "High";
-	return "Critical";
-}
-
-/**
- * Materialization budget per turn, varies with pressure.
- *
- * materializationBudget :: PressureLevel -> Int
- */
-export function materializationBudget(pressure: PressureLevel): number {
-	switch (pressure) {
-		case "Low":
-			return 8000;
-		case "Medium":
-			return 4000;
-		case "High":
-			return 2000;
-		case "Critical":
-			return 500;
-	}
-}
+export const MATERIALIZATION_BUDGET = 1000;
 
 // ============================================================================
 // Page table — the TLB
@@ -408,7 +373,6 @@ export interface PageTable {
 	readonly chunks: ReadonlyMap<ContentHash, Chunk>;
 	readonly handles: ReadonlyMap<HandleId, Handle>;
 	readonly deps: readonly ChunkDep[];
-	readonly pressure: PressureLevel;
 }
 
 /** Empty page table. mempty for PageTable. */
@@ -417,7 +381,6 @@ export function emptyPageTable(): PageTable {
 		chunks: new Map(),
 		handles: new Map(),
 		deps: [],
-		pressure: "Low",
 	};
 }
 
@@ -442,11 +405,6 @@ export function ptInsertHandle(pt: PageTable, handle: Handle): PageTable {
 /** Add a dependency edge. Returns new PageTable. */
 export function ptAddDep(pt: PageTable, dep: ChunkDep): PageTable {
 	return { ...pt, deps: [...pt.deps, dep] };
-}
-
-/** Update pressure level. */
-export function ptSetPressure(pt: PageTable, pressure: PressureLevel): PageTable {
-	return { ...pt, pressure };
 }
 
 /** Get all chunks that depend on a given chunk (incoming edges). */
