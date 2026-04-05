@@ -2,6 +2,7 @@ import type { AgentMessage } from "@oh-my-pi/pi-agent-core";
 import type { AssistantMessage, ImageContent, Message } from "@oh-my-pi/pi-ai";
 import { Spacer, Text, TruncatedText } from "@oh-my-pi/pi-tui";
 import { settings } from "../../config/settings";
+import { renderTurnEnd, renderTurnStart } from "../../core/carter_kit/turn-boundary";
 import { AssistantMessageComponent } from "../../modes/components/assistant-message";
 import { BashExecutionComponent } from "../../modes/components/bash-execution";
 import { BranchSummaryMessageComponent } from "../../modes/components/branch-summary-message";
@@ -15,7 +16,13 @@ import { ToolExecutionComponent } from "../../modes/components/tool-execution";
 import { UserMessageComponent } from "../../modes/components/user-message";
 import { theme } from "../../modes/theme/theme";
 import type { CompactionQueuedMessage, InteractiveModeContext } from "../../modes/types";
-import { type CustomMessage, SKILL_PROMPT_MESSAGE_TYPE, type SkillPromptDetails } from "../../session/messages";
+import {
+	type CustomMessage,
+	SKILL_PROMPT_MESSAGE_TYPE,
+	type SkillPromptDetails,
+	type TurnEndMessage,
+	type TurnStartMessage,
+} from "../../session/messages";
 import type { SessionContext } from "../../session/session-manager";
 import { formatBytes, formatDuration } from "../../tools/render-utils";
 
@@ -169,6 +176,16 @@ export class UiHelpers {
 					)} ${theme.fg("dim", suffix)}`;
 					this.ctx.chatContainer.addChild(new Text(text, 0, 0));
 				}
+				break;
+			}
+			case "turnStart": {
+				this.ctx.chatContainer.addChild(
+					new Text(theme.fg("dim", renderTurnStart(message as TurnStartMessage)), 0, 0),
+				);
+				break;
+			}
+			case "turnEnd": {
+				this.ctx.chatContainer.addChild(new Text(theme.fg("dim", renderTurnEnd(message as TurnEndMessage)), 0, 0));
 				break;
 			}
 			case "user":

@@ -47,6 +47,8 @@ import {
 	type HookMessage,
 	type PythonExecutionMessage,
 	sanitizeRehydratedOpenAIResponsesAssistantMessage,
+	type TurnEndMessage,
+	type TurnStartMessage,
 } from "./messages";
 import type { SessionStorage, SessionStorageWriter } from "./session-storage";
 import { FileSessionStorage, MemorySessionStorage } from "./session-storage";
@@ -2034,7 +2036,9 @@ export class SessionManager {
 			| HookMessage
 			| BashExecutionMessage
 			| PythonExecutionMessage
-			| FileMentionMessage,
+			| FileMentionMessage
+			| TurnStartMessage
+			| TurnEndMessage,
 	): string {
 		const entry: SessionMessageEntry = {
 			type: "message",

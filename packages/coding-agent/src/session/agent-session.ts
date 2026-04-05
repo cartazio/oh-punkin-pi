@@ -13,9 +13,9 @@
  * Modes use this class and add their own I/O layer on top.
  */
 
+import { createHash } from "node:crypto";
 import * as fs from "node:fs";
 import * as path from "node:path";
-
 import {
 	type Agent,
 	AgentBusyError,
@@ -23,6 +23,7 @@ import {
 	type AgentMessage,
 	type AgentState,
 	type AgentTool,
+	type AgentToolResult,
 	INTENT_FIELD,
 	ThinkingLevel,
 } from "@oh-my-pi/pi-agent-core";
@@ -63,6 +64,8 @@ import {
 } from "../config/model-resolver";
 import { expandPromptTemplate, type PromptTemplate, renderPromptTemplate } from "../config/prompt-templates";
 import type { Settings, SkillsSettings } from "../config/settings";
+import { BOOT_SEQUENCE_PROMPT, ETHOS_PROMPT, HANDLE_TOOLS_PROMPT, pressureWarning } from "../core/carter_kit/runtime";
+import { type CarterKitHook, createCarterKitHook } from "../core/carter_kit/session-hook";
 import { type BashResult, executeBash as executeBashCommand } from "../exec/bash-executor";
 import { exportSessionToHtml } from "../export/html";
 import type { TtsrManager, TtsrMatchContext } from "../export/ttsr";
@@ -478,6 +481,10 @@ export class AgentSession {
 	#convertToLlm: (messages: AgentMessage[]) => Message[] | Promise<Message[]>;
 	#rebuildSystemPrompt: ((toolNames: string[], tools: Map<string, AgentTool>) => Promise<string>) | undefined;
 	#baseSystemPrompt: string;
+	#carterKitHook: CarterKitHook | undefined = undefined;
+	#carterKitToolNames: string[] = [];
+	#carterKitTurnStartIndex: number | undefined = undefined;
+	#carterKitResultCache = new Map<string, AgentToolResult<any>>();
 	#mcpDiscoveryEnabled = false;
 	#discoverableMCPTools = new Map<string, DiscoverableMCPTool>();
 	#discoverableMCPSearchIndex: DiscoverableMCPSearchIndex | null = null;
@@ -528,11 +535,39 @@ export class AgentSession {
 		this.#modelRegistry = config.modelRegistry;
 		this.#validateRetryFallbackChains();
 		this.#toolRegistry = config.toolRegistry ?? new Map();
-		this.#transformContext = config.transformContext ?? (messages => messages);
+		const baseTransformContext = config.transformContext ?? (messages => messages);
+		this.#transformContext = async (messages, signal) => {
+			const transformed = await baseTransformContext(messages, signal);
+			const usage = this.getContextUsage();
+			if (!usage || usage.tokens === null) return transformed;
+			const warning = pressureWarning(usage.tokens, usage.contextWindow);
+			if (!warning) return transformed;
+			return [
+				...transformed,
+				{
+					role: "developer",
+					content: warning,
+					attribution: "agent",
+					timestamp: Date.now(),
+				},
+			];
+		};
 		this.#onPayload = config.onPayload;
 		this.#convertToLlm = config.convertToLlm ?? convertToLlm;
-		this.#rebuildSystemPrompt = config.rebuildSystemPrompt;
-		this.#baseSystemPrompt = this.agent.state.systemPrompt;
+		const originalSystemPrompt = this.agent.state.systemPrompt;
+		const baseRebuildSystemPrompt = config.rebuildSystemPrompt;
+		this.#rebuildSystemPrompt = async (toolNames, tools) => {
+			const base = baseRebuildSystemPrompt ? await baseRebuildSystemPrompt(toolNames, tools) : originalSystemPrompt;
+			return [base, ETHOS_PROMPT, BOOT_SEQUENCE_PROMPT, HANDLE_TOOLS_PROMPT].join("\n\n");
+		};
+		this.#baseSystemPrompt = [originalSystemPrompt, ETHOS_PROMPT, BOOT_SEQUENCE_PROMPT, HANDLE_TOOLS_PROMPT].join(
+			"\n\n",
+		);
+		this.agent.setSystemPrompt(this.#baseSystemPrompt);
+		for (const [name, tool] of Array.from(this.#toolRegistry.entries())) {
+			this.#toolRegistry.set(name, this.#wrapToolWithCarterKit(tool));
+		}
+		this.#refreshCarterKitHook();
 		this.#mcpDiscoveryEnabled = config.mcpDiscoveryEnabled ?? false;
 		this.#setDiscoverableMCPTools(this.#collectDiscoverableMCPToolsFromRegistry());
 		this.#selectedMCPToolNames = new Set(config.initialSelectedMCPToolNames ?? []);
@@ -579,6 +614,99 @@ export class AgentSession {
 		// Always subscribe to agent events for internal handling
 		// (session persistence, hooks, auto-compaction, retry logic)
 		this.#unsubscribeAgent = this.agent.subscribe(this.#handleAgentEvent);
+	}
+
+	#getCarterKitStorePath(): string | undefined {
+		const sessionFile = this.sessionManager.getSessionFile();
+		return sessionFile ? `${sessionFile}.carter-kit` : undefined;
+	}
+
+	#carterKitInputDigest(toolName: string, params: unknown): string | undefined {
+		try {
+			const serialized = JSON.stringify(
+				params,
+				typeof params === "object" && params !== null ? Object.keys(params as object).sort() : undefined,
+			);
+			return createHash("sha3-256").update(`${toolName}:${serialized}`).digest("hex");
+		} catch {
+			return undefined;
+		}
+	}
+
+	#syncActiveToolsFromRegistry(toolNames?: string[]): void {
+		const activeToolNames = toolNames ?? [...new Set([...this.getActiveToolNames(), ...this.#carterKitToolNames])];
+		this.agent.setTools(
+			activeToolNames
+				.map(name => this.#toolRegistry.get(name))
+				.filter((tool): tool is AgentTool => tool !== undefined),
+		);
+	}
+
+	#refreshCarterKitHook(): void {
+		const previousToolNames = this.#carterKitToolNames;
+		this.#carterKitHook?.shutdown();
+		this.#carterKitResultCache.clear();
+		this.#carterKitHook = createCarterKitHook(this.#getCarterKitStorePath(), this.sessionManager.getSessionId());
+		for (const name of previousToolNames) {
+			this.#toolRegistry.delete(name);
+		}
+		const carterKitTools = this.#carterKitHook.getTools();
+		this.#carterKitToolNames = carterKitTools.map(tool => tool.name);
+		for (const tool of carterKitTools) {
+			const finalTool = (
+				this.#extensionRunner ? new ExtensionToolWrapper(tool, this.#extensionRunner) : tool
+			) as AgentTool;
+			this.#toolRegistry.set(finalTool.name, finalTool);
+		}
+		this.#carterKitTurnStartIndex = undefined;
+		this.#syncActiveToolsFromRegistry();
+	}
+
+	#wrapToolWithCarterKit(tool: AgentTool): AgentTool {
+		if (!this.#carterKitHook || this.#carterKitToolNames.includes(tool.name)) {
+			return tool;
+		}
+		const original = tool;
+		const self = this;
+		return {
+			...original,
+			async execute(toolCallId, params, signal, onUpdate, context) {
+				const hook = self.#carterKitHook;
+				if (!hook) {
+					return await original.execute.call(original, toolCallId, params, signal, onUpdate, context);
+				}
+				const { skipResult, handleId } = hook.beforeToolCall(original.name, params);
+				const inputDigest = self.#carterKitInputDigest(original.name, params);
+				if (skipResult !== undefined) {
+					const cachedResult = inputDigest ? self.#carterKitResultCache.get(inputDigest) : undefined;
+					if (cachedResult) return cachedResult;
+					return {
+						content: [{ type: "text", text: skipResult }],
+						details: { cached: true, handleId },
+					};
+				}
+				const result = await original.execute.call(original, toolCallId, params, signal, onUpdate, context);
+				if (inputDigest) {
+					self.#carterKitResultCache.set(inputDigest, result);
+				}
+				const textParts = result.content.filter((c): c is TextContent => c.type === "text");
+				if (textParts.length === 0) return result;
+				const imageParts = result.content.filter((c): c is ImageContent => c.type === "image");
+				const usage = self.getContextUsage();
+				const contextTokens = usage?.tokens ?? 0;
+				const contextWindow = usage?.contextWindow ?? self.model?.contextWindow ?? 0;
+				const rewrittenText = hook.afterToolResult(
+					handleId,
+					textParts.map(c => c.text).join("\n"),
+					contextTokens,
+					contextWindow,
+				);
+				const nextContent = rewrittenText
+					? ([{ type: "text", text: rewrittenText }, ...imageParts] as typeof result.content)
+					: result.content;
+				return { ...result, content: nextContent };
+			},
+		};
 	}
 
 	/** Model registry for API key resolution and model discovery */
@@ -671,19 +799,40 @@ export class AgentSession {
 		await this.#emitSessionEvent(event);
 
 		if (event.type === "turn_start") {
+			this.#carterKitHook?.onAssistantTurnStart();
+			const turnStart = this.#carterKitHook?.currentTurnStartMessage();
+			if (turnStart) {
+				this.agent.appendMessage(turnStart as AgentMessage);
+				this.sessionManager.appendMessage(turnStart);
+			}
+			this.#carterKitTurnStartIndex = this.agent.state.messages.length;
 			this.#resetStreamingEditState();
 			// TTSR: Reset buffer on turn start
 			this.#ttsrManager?.resetBuffer();
 		}
 
 		// TTSR: Increment message count on turn end (for repeat-after-gap tracking)
-		if (event.type === "turn_end" && this.#ttsrManager) {
-			this.#ttsrManager.incrementMessageCount();
-		}
-		if (event.type === "turn_end" && this.#pendingRewindReport) {
-			const report = this.#pendingRewindReport;
-			this.#pendingRewindReport = undefined;
-			await this.#applyRewind(report);
+		if (event.type === "turn_end") {
+			if (this.#carterKitHook) {
+				const endIndex = this.agent.state.messages.length;
+				const startIndex = Math.min(this.#carterKitTurnStartIndex ?? endIndex, endIndex);
+				const turnMessages = this.agent.state.messages.slice(startIndex, endIndex);
+				if (turnMessages.length > 0) {
+					const [, turnEnd] = this.#carterKitHook.onAssistantTurnEnd(turnMessages);
+					this.agent.appendMessage(turnEnd as AgentMessage);
+					this.sessionManager.appendMessage(turnEnd);
+				}
+				this.#carterKitHook.turnEnd(event.message);
+				this.#carterKitTurnStartIndex = undefined;
+			}
+			if (this.#ttsrManager) {
+				this.#ttsrManager.incrementMessageCount();
+			}
+			if (this.#pendingRewindReport) {
+				const report = this.#pendingRewindReport;
+				this.#pendingRewindReport = undefined;
+				await this.#applyRewind(report);
+			}
 		}
 
 		// TTSR: Check for pattern matches on assistant text/thinking and tool argument deltas
@@ -1661,6 +1810,7 @@ export class AgentSession {
 		if (drained === false && deliveryState) {
 			logger.warn("Async job completion deliveries still pending during dispose", { ...deliveryState });
 		}
+		this.#carterKitHook?.shutdown();
 		await this.sessionManager.close();
 		this.#closeAllProviderSessions("dispose");
 		this.#unsubscribePendingActionPush?.();
@@ -1870,7 +2020,8 @@ export class AgentSession {
 		const previousSelectedMCPToolNames = options?.previousSelectedMCPToolNames ?? this.getSelectedMCPToolNames();
 		const tools: AgentTool[] = [];
 		const validToolNames: string[] = [];
-		for (const name of toolNames) {
+		const requestedToolNames = [...new Set([...toolNames, ...this.#carterKitToolNames])];
+		for (const name of requestedToolNames) {
 			const tool = this.#toolRegistry.get(name);
 			if (tool) {
 				tools.push(tool);
@@ -1963,7 +2114,7 @@ export class AgentSession {
 			const finalTool = (
 				this.#extensionRunner ? new ExtensionToolWrapper(wrapped, this.#extensionRunner) : wrapped
 			) as AgentTool;
-			this.#toolRegistry.set(finalTool.name, finalTool);
+			this.#toolRegistry.set(finalTool.name, this.#wrapToolWithCarterKit(finalTool));
 		}
 
 		this.#setDiscoverableMCPTools(this.#collectDiscoverableMCPToolsFromRegistry());
@@ -3046,6 +3197,7 @@ export class AgentSession {
 		await this.sessionManager.newSession(options);
 		this.setTodoPhases([]);
 		this.agent.sessionId = this.sessionManager.getSessionId();
+		this.#refreshCarterKitHook();
 		this.#steeringMessages = [];
 		this.#followUpMessages = [];
 		this.#pendingNextTurnMessages = [];
@@ -3139,6 +3291,7 @@ export class AgentSession {
 
 		// Update agent session ID
 		this.agent.sessionId = this.sessionManager.getSessionId();
+		this.#refreshCarterKitHook();
 
 		// Emit session_switch event with reason "fork" to hooks
 		if (this.#extensionRunner) {
@@ -3784,6 +3937,7 @@ export class AgentSession {
 			await this.sessionManager.newSession();
 			this.agent.reset();
 			this.agent.sessionId = this.sessionManager.getSessionId();
+			this.#refreshCarterKitHook();
 			this.#steeringMessages = [];
 			this.#followUpMessages = [];
 			this.#pendingNextTurnMessages = [];
@@ -5544,6 +5698,7 @@ export class AgentSession {
 		try {
 			await this.sessionManager.setSessionFile(sessionPath);
 			this.agent.sessionId = this.sessionManager.getSessionId();
+			this.#refreshCarterKitHook();
 
 			const sessionContext = this.sessionManager.buildSessionContext();
 			const didReloadConversationChange =
@@ -5709,6 +5864,7 @@ export class AgentSession {
 		}
 		this.#syncTodoPhasesFromBranch();
 		this.agent.sessionId = this.sessionManager.getSessionId();
+		this.#refreshCarterKitHook();
 
 		// Reload messages from entries (works for both file and in-memory mode)
 		const sessionContext = this.sessionManager.buildSessionContext();

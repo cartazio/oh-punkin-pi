@@ -272,7 +272,9 @@ function preferDiscoveryLimit(discoveryLimit: number, fallbackLimit: number): nu
 	if (discoveryLimit === 4096 && fallbackLimit > discoveryLimit) {
 		return fallbackLimit;
 	}
-	return discoveryLimit;
+	// Context windows only grow — take the larger of discovery and catalog.
+	// Stale discovery metadata must not downgrade a known-correct catalog value.
+	return Math.max(discoveryLimit, fallbackLimit);
 }
 
 function normalizeModelList<TApi extends Api>(value: unknown): Model<TApi>[] {

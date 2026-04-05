@@ -15,8 +15,17 @@ import type {
 	ToolResultMessage,
 	UserMessage,
 } from "@oh-my-pi/pi-ai";
-import { type WrapParams, wrapSystem, wrapUser } from "@oh-my-pi/pi-ai/role-boundary";
+import {
+	closeSquiggleBracket,
+	openSquiggleBracket,
+	type ToolResultWrapParams,
+	type WrapParams,
+	wrapSystem,
+	wrapToolResult,
+	wrapUser,
+} from "@oh-my-pi/pi-ai/role-boundary";
 import { renderPromptTemplate } from "../config/prompt-templates";
+import { renderTurnEnd, renderTurnStart } from "../core/carter_kit/turn-boundary";
 import branchSummaryContextPrompt from "../prompts/compaction/branch-summary-context.md" with { type: "text" };
 import compactionSummaryContextPrompt from "../prompts/compaction/compaction-summary-context.md" with { type: "text" };
 import type { OutputMeta } from "../tools/output-meta";
@@ -41,6 +50,37 @@ function getPrunedToolResultContent(message: ToolResultMessage): (TextContent | 
 	const textBlocks = message.content.filter((content): content is TextContent => content.type === "text");
 	const text = textBlocks.map(block => block.text).join("") || "[Output truncated]";
 	return [{ type: "text", text }];
+}
+
+/**
+ * Convert ThinkingContent blocks in an assistant message to squiggle-wrapped
+ * TextContent blocks so the model can read its own prior reasoning.
+ *
+ * Thinking blocks are opaque to the model — the API preserves them for
+ * continuity (signatures, replay) but the model cannot reference their content.
+ * This transform emits a readable squiggle-formatted text copy alongside each
+ * thinking block, giving the model access to its own chain-of-thought.
+ *
+ * The original ThinkingContent blocks are preserved for API/signature correctness.
+ */
+function reifyThinkingAsSquiggle(msg: AssistantMessage): AssistantMessage {
+	const hasThinking = msg.content.some(b => b.type === "thinking" && b.thinking.trim() !== "");
+	if (!hasThinking) return msg;
+
+	const content: AssistantMessage["content"] = msg.content.flatMap(block => {
+		if (block.type !== "thinking" || block.thinking.trim() === "") return [block];
+
+		// Emit squiggle-wrapped text copy, then the original thinking block
+		const { marker: openMarker, bracketId } = openSquiggleBracket();
+		const closeMarker = closeSquiggleBracket(bracketId);
+		const squiggleText: TextContent = {
+			type: "text",
+			text: `${openMarker}\n${block.thinking}\n${closeMarker}`,
+		};
+		return [squiggleText, block];
+	});
+
+	return { ...msg, content };
 }
 
 /**
@@ -104,6 +144,31 @@ export interface HookMessage<T = unknown> {
 	timestamp: number;
 }
 
+/**
+ * Turn boundary messages — injected around completed assistant turns
+ * to provide structural demarcation in conversation history.
+ */
+export interface TurnStartMessage {
+	role: "turnStart";
+	turn: number;
+	sigil: string;
+	nonce: string;
+	timestamp: number;
+	delta?: string;
+}
+
+export interface TurnEndMessage {
+	role: "turnEnd";
+	turn: number;
+	sigil: string;
+	nonce: string;
+	hash: string;
+	timestamp: number;
+	tokenCount?: number;
+	durationMs: number;
+	isEmpty?: boolean;
+}
+
 export interface BranchSummaryMessage {
 	role: "branchSummary";
 	summary: string;
@@ -149,6 +214,8 @@ declare module "@oh-my-pi/pi-agent-core" {
 		branchSummary: BranchSummaryMessage;
 		compactionSummary: CompactionSummaryMessage;
 		fileMention: FileMentionMessage;
+		turnStart: TurnStartMessage;
+		turnEnd: TurnEndMessage;
 	}
 }
 
@@ -436,13 +503,45 @@ export function convertToLlm(messages: AgentMessage[]): Message[] {
 				break;
 			case "assistant":
 				prevAssistantTimestamp = m.timestamp;
-				converted = m;
+				converted = reifyThinkingAsSquiggle(m as AssistantMessage);
 				break;
-			case "toolResult":
+			case "toolResult": {
+				const trm = m as ToolResultMessage;
+				const prunedContent = getPrunedToolResultContent(trm);
+				const textParts = prunedContent.filter((c): c is TextContent => c.type === "text");
+				const imageParts = prunedContent.filter((c): c is ImageContent => c.type === "image");
+				const rawText = textParts.map(t => t.text).join("\n");
+				const trParams: ToolResultWrapParams = {
+					timestamp: prevAssistantTimestamp ?? trm.timestamp,
+					endTimestamp: trm.timestamp,
+					turn: turnIndex,
+					toolName: trm.toolName,
+				};
+				const wrappedText = rawText ? wrapToolResult(rawText, trParams) : "";
+				const content: (TextContent | ImageContent)[] = [];
+				if (wrappedText) content.push({ type: "text", text: wrappedText });
+				content.push(...imageParts);
 				converted = {
-					...m,
-					content: getPrunedToolResultContent(m as ToolResultMessage),
-					attribution: m.attribution ?? "agent",
+					...trm,
+					content: content.length > 0 ? content : prunedContent,
+					attribution: trm.attribution ?? "agent",
+				};
+				break;
+			}
+			case "turnStart":
+				converted = {
+					role: "developer",
+					content: [{ type: "text", text: renderTurnStart(m as TurnStartMessage) }],
+					attribution: "agent",
+					timestamp: m.timestamp,
+				};
+				break;
+			case "turnEnd":
+				converted = {
+					role: "developer",
+					content: [{ type: "text", text: renderTurnEnd(m as TurnEndMessage) }],
+					attribution: "agent",
+					timestamp: m.timestamp,
 				};
 				break;
 			default: {
