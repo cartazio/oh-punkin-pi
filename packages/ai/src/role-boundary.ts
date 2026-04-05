@@ -411,6 +411,117 @@ const SYSTEM_WORDS = [
 	"wire",
 ] as const;
 
+const TOOL_RESULT_SIGILS = [
+	"🔧",
+	"🔨",
+	"⛏️",
+	"🪚",
+	"🪛",
+	"🔩",
+	"⚒️",
+	"🛠️",
+	"⚙️",
+	"🪝",
+	"🪜",
+	"🪤",
+	"🪓",
+	"🔗",
+	"⛓️",
+	"🪵",
+	"🧰",
+	"📎",
+	"🔑",
+] as const;
+
+const TOOL_RESULT_WORDS = [
+	// rheology
+	"creep",
+	"shear",
+	"viscous",
+	"thixo",
+	"yield",
+	"strain",
+	"stress",
+	"modulus",
+	"newtonian",
+	"bingham",
+	"laminar",
+	"turbid",
+	"dilatant",
+	"slurry",
+	"emulsion",
+	"colloid",
+	// crystallography
+	"lattice",
+	"anneal",
+	"nucleate",
+	"dendrite",
+	"alloy",
+	"austenite",
+	"ferrite",
+	"martensite",
+	"pearlite",
+	"bainite",
+	"cementite",
+	"twinning",
+	"disloc",
+	"grain",
+	"phase",
+	"precipitate",
+	// polymer / soft matter
+	"polymer",
+	"monomer",
+	"crosslink",
+	"elastomer",
+	"thermoset",
+	"resin",
+	"vulcan",
+	"plasticize",
+	"gel",
+	"latex",
+	"silicone",
+	"epoxy",
+	// tribology / surface
+	"friction",
+	"abrasion",
+	"adhesion",
+	"fatigue",
+	"erosion",
+	"patina",
+	"oxide",
+	"galvanic",
+	"anodize",
+	"temper",
+	"quench",
+	"sinter",
+	// bulk properties
+	"tensile",
+	"ductile",
+	"brittle",
+	"malleable",
+	"hardness",
+	"toughness",
+	"fracture",
+	"cleavage",
+	"isotropy",
+	"hygro",
+	"porosity",
+	"density",
+	// processing
+	"extrude",
+	"laminate",
+	"sputter",
+	"ablate",
+	"flux",
+	"crucible",
+	"ingot",
+	"slag",
+	"matte",
+	"calcine",
+	"leach",
+	"refine",
+] as const;
+
 // =============================================================================
 // Helpers
 // =============================================================================
@@ -526,6 +637,26 @@ export function wrapSystem(content: string, params: WrapParams): string {
 	return `[system]{${s} ${n} T=${tStart} turn:${params.turn}${delta} {\n${content}\n} T=${tEnd} H=${hash} ${n} ${s}}`;
 }
 
+/**
+ * Wrap tool-result content with role boundary.
+ * Format: [tool-result]{sigil nonce T=... turn:N tool:name { content } T=end H=hash nonce sigil}
+ */
+export interface ToolResultWrapParams extends WrapParams {
+	/** Tool name that produced this result. */
+	toolName: string;
+}
+
+export function wrapToolResult(content: string, params: ToolResultWrapParams): string {
+	const s = pick(TOOL_RESULT_SIGILS);
+	const n = generateNonce(TOOL_RESULT_WORDS);
+	const hash = sha3Trunc(content);
+	const delta = params.delta ? ` Δ${params.delta}` : "";
+	const tStart = formatTimestamp(params.timestamp);
+	const tEnd = formatTimestamp(params.endTimestamp);
+
+	return `[tool-result]{${s} ${n} T=${tStart} turn:${params.turn} tool:${params.toolName}${delta} {\n${content}\n} T=${tEnd} H=${hash} ${n} ${s}}`;
+}
+
 // =============================================================================
 // Squiggle Bracket Helpers
 // =============================================================================
@@ -553,3 +684,4 @@ export const USER_CODEBOOK = { sigils: USER_SIGILS, words: USER_WORDS } as const
 export const ASSISTANT_CODEBOOK = { sigils: ASSISTANT_SIGILS, words: ASSISTANT_WORDS } as const;
 export const SYSTEM_CODEBOOK = { sigils: SYSTEM_SIGILS, words: SYSTEM_WORDS } as const;
 export const SQUIGGLE_CODEBOOK = { sigils: SQUIGGLE_SIGILS, words: SQUIGGLE_WORDS } as const;
+export const TOOL_RESULT_CODEBOOK = { sigils: TOOL_RESULT_SIGILS, words: TOOL_RESULT_WORDS } as const;
