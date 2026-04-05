@@ -529,20 +529,11 @@ export function convertToLlm(messages: AgentMessage[]): Message[] {
 				break;
 			}
 			case "turnStart":
-				converted = {
-					role: "developer",
-					content: [{ type: "text", text: renderTurnStart(m as TurnStartMessage) }],
-					attribution: "agent",
-					timestamp: m.timestamp,
-				};
-				break;
 			case "turnEnd":
-				converted = {
-					role: "developer",
-					content: [{ type: "text", text: renderTurnEnd(m as TurnEndMessage) }],
-					attribution: "agent",
-					timestamp: m.timestamp,
-				};
+				// Turn boundaries are persisted and rendered in UI but not sent to the model yet.
+				// Wire format TBD — developer role is wrong (collapses to user on Anthropic/Google,
+				// means "trusted instruction" on OpenAI). See role_boundary_design doc.
+				converted = undefined;
 				break;
 			default: {
 				const _exhaustiveCheck: never = m;
