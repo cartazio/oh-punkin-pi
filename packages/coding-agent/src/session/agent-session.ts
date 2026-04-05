@@ -64,7 +64,7 @@ import {
 } from "../config/model-resolver";
 import { expandPromptTemplate, type PromptTemplate, renderPromptTemplate } from "../config/prompt-templates";
 import type { Settings, SkillsSettings } from "../config/settings";
-import { BOOT_SEQUENCE_PROMPT, ETHOS_PROMPT, HANDLE_TOOLS_PROMPT, pressureWarning } from "../core/carter_kit/runtime";
+import { BOOT_SEQUENCE_PROMPT, ETHOS_PROMPT, HANDLE_TOOLS_PROMPT } from "../core/carter_kit/runtime";
 import { type CarterKitHook, createCarterKitHook } from "../core/carter_kit/session-hook";
 import { type BashResult, executeBash as executeBashCommand } from "../exec/bash-executor";
 import { exportSessionToHtml } from "../export/html";
@@ -535,23 +535,7 @@ export class AgentSession {
 		this.#modelRegistry = config.modelRegistry;
 		this.#validateRetryFallbackChains();
 		this.#toolRegistry = config.toolRegistry ?? new Map();
-		const baseTransformContext = config.transformContext ?? (messages => messages);
-		this.#transformContext = async (messages, signal) => {
-			const transformed = await baseTransformContext(messages, signal);
-			const usage = this.getContextUsage();
-			if (!usage || usage.tokens === null) return transformed;
-			const warning = pressureWarning(usage.tokens, usage.contextWindow);
-			if (!warning) return transformed;
-			return [
-				...transformed,
-				{
-					role: "developer",
-					content: warning,
-					attribution: "agent",
-					timestamp: Date.now(),
-				},
-			];
-		};
+		this.#transformContext = config.transformContext ?? (messages => messages);
 		this.#onPayload = config.onPayload;
 		this.#convertToLlm = config.convertToLlm ?? convertToLlm;
 		const originalSystemPrompt = this.agent.state.systemPrompt;
@@ -692,15 +676,7 @@ export class AgentSession {
 				const textParts = result.content.filter((c): c is TextContent => c.type === "text");
 				if (textParts.length === 0) return result;
 				const imageParts = result.content.filter((c): c is ImageContent => c.type === "image");
-				const usage = self.getContextUsage();
-				const contextTokens = usage?.tokens ?? 0;
-				const contextWindow = usage?.contextWindow ?? self.model?.contextWindow ?? 0;
-				const rewrittenText = hook.afterToolResult(
-					handleId,
-					textParts.map(c => c.text).join("\n"),
-					contextTokens,
-					contextWindow,
-				);
+				const rewrittenText = hook.afterToolResult(handleId, textParts.map(c => c.text).join("\n"));
 				const nextContent = rewrittenText
 					? ([{ type: "text", text: rewrittenText }, ...imageParts] as typeof result.content)
 					: result.content;
@@ -4232,9 +4208,7 @@ export class AgentSession {
 		// Compact HUD with full item list — fires once, no demand
 		const todoList = incompleteByPhase
 			.map(phase => {
-				const items = phase.tasks
-					.map(t => `  ${t.status === "in_progress" ? "→" : "○"} ${t.content}`)
-					.join("\n");
+				const items = phase.tasks.map(t => `  ${t.status === "in_progress" ? "→" : "○"} ${t.content}`).join("\n");
 				return `- ${phase.name}\n${items}`;
 			})
 			.join("\n");

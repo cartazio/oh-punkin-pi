@@ -53,7 +53,7 @@ export interface Store {
 	/** Content-addressed blobs. Map ContentHash Blob */
 	blobs: Map<ContentHash, Blob>;
 
-	/** The page table — chunks, handles, deps, pressure. */
+	/** The page table — chunks, handles, deps. */
 	pageTable: PageTable;
 
 	/** Dedup cache for idempotent tool calls. Map cacheKey HandleId */
@@ -226,7 +226,7 @@ interface SerializedStore {
 	chunks: Array<[string, Chunk]>;
 	handles: Array<[string, Handle]>;
 	deps: PageTable["deps"];
-	pressure: PageTable["pressure"];
+	// pressure: PageTable["pressure"];
 	handleCache: Array<[string, string]>;
 	oracleLog: OracleOp[];
 	compactionLog: CompactionEvent[];
@@ -241,7 +241,7 @@ function saveStore(store: Store): void {
 		chunks: Array.from(store.pageTable.chunks.entries()),
 		handles: Array.from(store.pageTable.handles.entries()),
 		deps: store.pageTable.deps,
-		pressure: store.pageTable.pressure,
+		// pressure: store.pageTable.pressure,
 		handleCache: Array.from(store.handleCache.entries()),
 		oracleLog: store.oracleLog,
 		compactionLog: store.compactionLog,
@@ -260,7 +260,6 @@ function loadStore(path: string): Store {
 			chunks: new Map(s.chunks.map(([k, v]) => [mkContentHash(k), v])),
 			handles: new Map(s.handles.map(([k, v]) => [k as HandleId, v])),
 			deps: s.deps,
-			pressure: s.pressure,
 		},
 		handleCache: new Map(s.handleCache) as Map<string, HandleId>,
 		oracleLog: s.oracleLog,

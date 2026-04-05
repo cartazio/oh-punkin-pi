@@ -17,16 +17,8 @@ import { homedir } from "node:os";
 import { resolve } from "node:path";
 import type { Store } from "./store.js";
 import { cacheHandle, getBlobContent, hash, lookupCachedHandle, putBlob, putHandle } from "./store.js";
-import type { ContentHash, Handle, HandleId, Idempotency, PressureLevel } from "./types.js";
-import {
-	classifyBash,
-	classifyTool,
-	freshHandleId,
-	handleCacheKey,
-	materializationBudget,
-	Pending,
-	Resolved,
-} from "./types.js";
+import type { ContentHash, Handle, HandleId, Idempotency } from "./types.js";
+import { classifyBash, classifyTool, freshHandleId, handleCacheKey, Pending, Resolved } from "./types.js";
 
 // ============================================================================
 // Internal helpers
@@ -211,13 +203,7 @@ export type CaptureResult =
  *   1. status → Resolved  (with resultHash + totalTokens)
  *   2. materializedTokens set  (records how many tokens entered context)
  */
-export function captureResult(
-	store: Store,
-	handleId: HandleId,
-	resultText: string,
-	pressure: PressureLevel,
-	turnIndex: number,
-): CaptureResult {
+export function captureResult(store: Store, handleId: HandleId, resultText: string, turnIndex: number): CaptureResult {
 	const resultHash = putBlob(store, "ToolResult", resultText);
 	const totalTokens = Math.ceil(resultText.length / 4);
 
@@ -236,7 +222,7 @@ export function captureResult(
 		putHandle(store, resolvedHandle);
 	}
 
-	const budget = materializationBudget(pressure);
+	const budget = 1000; //materializationBudget(pressure);
 
 	if (totalTokens <= budget) {
 		// Small enough to inline

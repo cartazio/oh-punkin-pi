@@ -20,7 +20,7 @@ export {
 	onTurnEnd as onRuntimeTurnEnd,
 	PUSHDOWN_TOOLS,
 	type PushDownToolDef,
-	pressureWarning,
+	// pressureWarning,
 	shutdownRuntime,
 	type ToolCallIntercept,
 } from "./runtime.js";

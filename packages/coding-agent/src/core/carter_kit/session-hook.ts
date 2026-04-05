@@ -18,7 +18,6 @@ import {
 	interceptToolResult,
 	onTurnEnd,
 	PUSHDOWN_TOOLS,
-	pressureWarning,
 	shutdownRuntime,
 } from "./runtime.js";
 import {
@@ -44,15 +43,10 @@ export interface CarterKitHook {
 		handleId: HandleId | undefined;
 	};
 
-	afterToolResult(
-		handleId: HandleId | undefined,
-		resultText: string,
-		contextTokens: number,
-		contextWindow: number,
-	): string;
+	afterToolResult(handleId: HandleId | undefined, resultText: string): string;
 
 	turnEnd(message: AgentMessage): void;
-	systemPromptAddition(contextTokens: number, contextWindow: number): string;
+	systemPromptAddition(): string;
 	enrichCompaction(messages: readonly AgentMessage[]): string;
 	getTools(): AgentTool[];
 	shutdown(): void;
@@ -129,25 +123,17 @@ export function createCarterKitHook(storePath: string | undefined, sessionId: st
 			}
 		},
 
-		afterToolResult(
-			handleId: HandleId | undefined,
-			resultText: string,
-			contextTokens: number,
-			contextWindow: number,
-		) {
+		afterToolResult(handleId: HandleId | undefined, resultText: string) {
 			if (!handleId) return resultText;
-			return interceptToolResult(rt, handleId, resultText, contextTokens, contextWindow);
+			return interceptToolResult(rt, handleId, resultText);
 		},
 
 		turnEnd(message: AgentMessage) {
 			onTurnEnd(rt, message);
 		},
 
-		systemPromptAddition(contextTokens: number, contextWindow: number) {
-			const parts: string[] = [HANDLE_TOOLS_PROMPT];
-			const warning = pressureWarning(contextTokens, contextWindow);
-			if (warning) parts.push(warning);
-			return parts.join("\n\n");
+		systemPromptAddition() {
+			return HANDLE_TOOLS_PROMPT;
 		},
 
 		enrichCompaction(messages: readonly AgentMessage[]) {

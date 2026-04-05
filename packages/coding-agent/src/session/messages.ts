@@ -25,7 +25,6 @@ import {
 	wrapUser,
 } from "@oh-my-pi/pi-ai/role-boundary";
 import { renderPromptTemplate } from "../config/prompt-templates";
-import { renderTurnEnd, renderTurnStart } from "../core/carter_kit/turn-boundary";
 import branchSummaryContextPrompt from "../prompts/compaction/branch-summary-context.md" with { type: "text" };
 import compactionSummaryContextPrompt from "../prompts/compaction/compaction-summary-context.md" with { type: "text" };
 import type { OutputMeta } from "../tools/output-meta";
