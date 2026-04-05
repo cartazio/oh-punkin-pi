@@ -4187,7 +4187,9 @@ export class AgentSession {
 		};
 	}
 	/**
-	 * Check if agent stopped with incomplete todos and prompt to continue.
+	 * Build a compact open-items HUD summary.
+	 * Non-demanding: agent sees it as ambient context, not an action directive.
+	 * Injected once per user turn. Does NOT force an agent continue.
 	 */
 	async #checkTodoCompletion(): Promise<void> {
 		const remindersEnabled = this.settings.get("todo.reminders");
@@ -4197,9 +4199,8 @@ export class AgentSession {
 			return;
 		}
 
-		const remindersMax = this.settings.get("todo.reminders.max");
-		if (this.#todoReminderCount >= remindersMax) {
-			logger.debug("Todo completion: max reminders reached", { count: this.#todoReminderCount });
+		// Only inject once per user turn — ambient, not nagging
+		if (this.#todoReminderCount >= 1) {
 			return;
 		}
 
@@ -4226,39 +4227,39 @@ export class AgentSession {
 			return;
 		}
 
-		// Build reminder message
 		this.#todoReminderCount++;
-		const todoList = incompleteByPhase
-			.map(phase => `- ${phase.name}\n${phase.tasks.map(task => `  - ${task.content}`).join("\n")}`)
-			.join("\n");
-		const reminder =
-			`<system-reminder>\n` +
-			`You stopped with ${incomplete.length} incomplete todo item(s):\n${todoList}\n\n` +
-			`Please continue working on these tasks or mark them complete if finished.\n` +
-			`(Reminder ${this.#todoReminderCount}/${remindersMax})\n` +
-			`</system-reminder>`;
 
-		logger.debug("Todo completion: sending reminder", {
-			incomplete: incomplete.length,
-			attempt: this.#todoReminderCount,
-		});
+		// Compact HUD: phase counts only
+		const phaseSummaries = incompleteByPhase
+			.map(phase => {
+				const inProgress = phase.tasks.filter(t => t.status === "in_progress").length;
+				const pending = phase.tasks.filter(t => t.status === "pending").length;
+				const parts: string[] = [];
+				if (inProgress > 0) parts.push(`${inProgress} active`);
+				if (pending > 0) parts.push(`${pending} pending`);
+				return `${phase.name}: ${parts.join(", ")}`;
+			})
+			.join("; ");
+		const hud = `<open-items>${incomplete.length} todo(s) — ${phaseSummaries}</open-items>`;
 
-		// Emit event for UI to render notification
+		logger.debug("Todo completion: injecting HUD", { incomplete: incomplete.length });
+
+		// Emit event for UI rendering
 		await this.#emitSessionEvent({
 			type: "todo_reminder",
 			todos: incomplete,
 			attempt: this.#todoReminderCount,
-			maxAttempts: remindersMax,
+			maxAttempts: 1,
 		});
 
-		// Inject reminder and continue the conversation
+		// Inject as developer message — ambient context, not a demand.
+		// Does NOT schedule agent continue. Agent sees it on next user-initiated turn.
 		this.agent.appendMessage({
 			role: "developer",
-			content: [{ type: "text", text: reminder }],
+			content: [{ type: "text", text: hud }],
 			attribution: "agent",
 			timestamp: Date.now(),
 		});
-		this.#scheduleAgentContinue({ generation: this.#promptGeneration });
 	}
 
 	/**
