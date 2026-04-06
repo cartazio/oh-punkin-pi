@@ -698,6 +698,40 @@ export function generateSystemBracketId(): BracketId {
 	return { sigil: pick(SYSTEM_SIGILS), nonce: generateNonce(SYSTEM_WORDS) };
 }
 
+/**
+ * Generate a deterministic BracketId for system messages, seeded from a content key.
+ * Same key always produces the same sigil + nonce, avoiding cache busting when
+ * messages are reconstructed from session entries on every buildSessionContext() call.
+ */
+export function generateSystemBracketIdDeterministic(contentKey: string): BracketId {
+	const hash = createHash("sha3-256").update(contentKey).digest();
+	const sigil = SYSTEM_SIGILS[hash.readUInt16BE(0) % SYSTEM_SIGILS.length];
+	const w1 = SYSTEM_WORDS[hash.readUInt16BE(2) % SYSTEM_WORDS.length];
+	const w2 = SYSTEM_WORDS[hash.readUInt16BE(4) % SYSTEM_WORDS.length];
+	const w3 = SYSTEM_WORDS[hash.readUInt16BE(6) % SYSTEM_WORDS.length];
+	return { sigil, nonce: `${w1}-${w2}-${w3}` };
+}
+
+/** Generate a deterministic BracketId for a user message, seeded from content. */
+export function generateUserBracketIdDeterministic(contentKey: string): BracketId {
+	const hash = createHash("sha3-256").update(contentKey).digest();
+	const sigil = USER_SIGILS[hash.readUInt16BE(0) % USER_SIGILS.length];
+	const w1 = USER_WORDS[hash.readUInt16BE(2) % USER_WORDS.length];
+	const w2 = USER_WORDS[hash.readUInt16BE(4) % USER_WORDS.length];
+	const w3 = USER_WORDS[hash.readUInt16BE(6) % USER_WORDS.length];
+	return { sigil, nonce: `${w1}-${w2}-${w3}` };
+}
+
+/** Generate a deterministic BracketId for a tool result message, seeded from content. */
+export function generateToolResultBracketIdDeterministic(contentKey: string): BracketId {
+	const hash = createHash("sha3-256").update(contentKey).digest();
+	const sigil = TOOL_RESULT_SIGILS[hash.readUInt16BE(0) % TOOL_RESULT_SIGILS.length];
+	const w1 = TOOL_RESULT_WORDS[hash.readUInt16BE(2) % TOOL_RESULT_WORDS.length];
+	const w2 = TOOL_RESULT_WORDS[hash.readUInt16BE(4) % TOOL_RESULT_WORDS.length];
+	const w3 = TOOL_RESULT_WORDS[hash.readUInt16BE(6) % TOOL_RESULT_WORDS.length];
+	return { sigil, nonce: `${w1}-${w2}-${w3}` };
+}
+
 // =============================================================================
 // Squiggle Bracket Helpers
 // =============================================================================
