@@ -387,7 +387,8 @@ describe("GitHub CLI tools", () => {
 			const tool = new GhPrCheckoutTool(createSession(fixture.repoRoot));
 			const result = await tool.execute("pr-checkout", { pr: "123" });
 			const text = result.content[0]?.type === "text" ? result.content[0].text : "";
-			const worktreePath = await fs.realpath(path.join(fixture.repoRoot, ".worktrees", "pr-123"));
+			const worktreePath = path.join(fixture.repoRoot, ".worktrees", "pr-123");
+			const worktreePathReal = await fs.realpath(worktreePath);
 
 			expect(text).toContain("Checked Out Pull Request #123");
 			expect(text).toContain(`Worktree: ${worktreePath}`);
@@ -395,8 +396,10 @@ describe("GitHub CLI tools", () => {
 			expect(runGit(fixture.repoRoot, ["config", "--get", "branch.pr-123.merge"])).toBe(
 				`refs/heads/${fixture.headRefName}`,
 			);
-			expect(runGit(fixture.repoRoot, ["worktree", "list", "--porcelain"])).toContain(`worktree ${worktreePath}`);
-			expect(runGit(worktreePath, ["branch", "--show-current"])).toBe("pr-123");
+			expect(runGit(fixture.repoRoot, ["worktree", "list", "--porcelain"])).toContain(
+				`worktree ${worktreePathReal}`,
+			);
+			expect(runGit(worktreePathReal, ["branch", "--show-current"])).toBe("pr-123");
 		} finally {
 			await fs.rm(fixture.baseDir, { recursive: true, force: true });
 		}

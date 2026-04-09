@@ -1,12 +1,11 @@
-import * as path from "node:path";
-import { getAgentDir } from "@oh-my-pi/pi-utils";
+import { getConfigRootDir } from "@oh-my-pi/pi-utils";
 
 export function filterUserExtensions<T extends { path: string }>(extensions: T[]): T[] {
-	const userExtensionsDir = path.join(getAgentDir(), "extensions");
-	return extensions.filter(ext => !ext.path.startsWith(userExtensionsDir));
+	const configRoot = getConfigRootDir();
+	return extensions.filter(ext => !ext.path.startsWith(configRoot));
 }
 
 export function filterUserExtensionErrors<T extends { path: string }>(errors: T[]): T[] {
-	const userExtensionsDir = path.join(getAgentDir(), "extensions");
-	return errors.filter(err => !err.path.startsWith(userExtensionsDir));
+	const configRoot = getConfigRootDir();
+	return errors.filter(err => !err.path.startsWith(configRoot));
 }
