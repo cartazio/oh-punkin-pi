@@ -1,9 +1,10 @@
-import { describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "bun:test";
 import * as typebox from "@sinclair/typebox";
 import { GreenCommand } from "../../../src/extensibility/custom-commands/bundled/ci-green";
 import type { CustomCommandAPI } from "../../../src/extensibility/custom-commands/types";
 import type { HookCommandContext } from "../../../src/extensibility/hooks/types";
 import * as piCodingAgent from "../../../src/index";
+import * as git from "../../../src/utils/git";
 
 function createApi(stdout: string): CustomCommandAPI {
 	return {
@@ -20,6 +21,9 @@ function createApi(stdout: string): CustomCommandAPI {
 }
 
 describe("GreenCommand", () => {
+	afterEach(() => {
+		vi.restoreAllMocks();
+	});
 	it("exposes the /green command name", () => {
 		const command = new GreenCommand(createApi(""));
 
@@ -27,7 +31,8 @@ describe("GreenCommand", () => {
 	});
 
 	it("includes tag instructions when HEAD has a tag", async () => {
-		const command = new GreenCommand(createApi("v0.1.0-alpha2\n"));
+		vi.spyOn(git.ref, "tags").mockResolvedValue(["v0.1.0-alpha2"]);
+		const command = new GreenCommand(createApi(""));
 
 		const result = await command.execute([], {} as HookCommandContext);
 

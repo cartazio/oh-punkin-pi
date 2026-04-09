@@ -373,7 +373,7 @@ describe("SessionManager legacy session migration persistence", () => {
 		if (!header) throw new Error("Expected session header");
 
 		expect(fs.statSync(sessionFile).mtimeMs).toBeGreaterThan(initialMtimeMs);
-		expect(header.version).toBe(3);
+		expect(header.version).toBe(5);
 		expect(persistedEntries).toHaveLength(4);
 		for (const entry of persistedEntries.filter(entry => entry.type !== "session")) {
 			expect(entry.id).toBeDefined();
@@ -404,7 +404,7 @@ describe("SessionManager legacy session migration persistence", () => {
 		if (!header) throw new Error("Expected session header");
 
 		expect(fs.statSync(sessionFile).mtimeMs).toBeGreaterThan(initialMtimeMs);
-		expect(header.version).toBe(3);
+		expect(header.version).toBe(5);
 		expect(persistedEntries).toHaveLength(2);
 		expect(persistedEntries[1]?.type).toBe("message");
 		if (persistedEntries[1]?.type !== "message") throw new Error("Expected message entry");
@@ -436,7 +436,7 @@ describe("SessionManager legacy session migration persistence", () => {
 		if (!header) throw new Error("Expected session header");
 
 		expect(fs.statSync(sessionFile).mtimeMs).toBeGreaterThan(initialMtimeMs);
-		expect(header.version).toBe(3);
+		expect(header.version).toBe(5);
 		expect(persistedEntries).toHaveLength(2);
 		expect(persistedEntries[1]?.type).toBe("message");
 		if (persistedEntries[1]?.type !== "message") throw new Error("Expected message entry");

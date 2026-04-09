@@ -234,20 +234,25 @@ interface SerializedStore {
 
 function saveStore(store: Store): void {
 	if (!store.path) return;
-	mkdirSync(store.path, { recursive: true });
+	try {
+		mkdirSync(store.path, { recursive: true });
 
-	const serialized: SerializedStore = {
-		blobs: Array.from(store.blobs.entries()),
-		chunks: Array.from(store.pageTable.chunks.entries()),
-		handles: Array.from(store.pageTable.handles.entries()),
-		deps: store.pageTable.deps,
-		// pressure: store.pageTable.pressure,
-		handleCache: Array.from(store.handleCache.entries()),
-		oracleLog: store.oracleLog,
-		compactionLog: store.compactionLog,
-	};
+		const serialized: SerializedStore = {
+			blobs: Array.from(store.blobs.entries()),
+			chunks: Array.from(store.pageTable.chunks.entries()),
+			handles: Array.from(store.pageTable.handles.entries()),
+			deps: store.pageTable.deps,
+			// pressure: store.pageTable.pressure,
+			handleCache: Array.from(store.handleCache.entries()),
+			oracleLog: store.oracleLog,
+			compactionLog: store.compactionLog,
+		};
 
-	writeFileSync(join(store.path, "store.json"), JSON.stringify(serialized, null, 2));
+		writeFileSync(join(store.path, "store.json"), JSON.stringify(serialized, null, 2));
+	} catch {
+		// Best-effort persist — read-only directories or other filesystem errors
+		// must not break session switching or shutdown.
+	}
 }
 
 function loadStore(path: string): Store {
