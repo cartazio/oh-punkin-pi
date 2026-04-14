@@ -1149,27 +1149,34 @@ function applyPromptCaching(params: MessageCreateParamsStreaming, cacheControl?:
 
 	if (cacheBreakpointsUsed >= MAX_CACHE_BREAKPOINTS) return;
 
-	const userIndexes = params.messages
-		.map((message, index) => (message.role === "user" ? index : -1))
-		.filter(index => index >= 0);
-
-	// Place cache breakpoint 3 turns back - caches everything up to that point
-	// (including all restored session content on resume)
-	if (userIndexes.length >= 4) {
-		const threeBackIndex = userIndexes[userIndexes.length - 4];
-		const threeBackUser = params.messages[threeBackIndex];
-		if (threeBackUser) {
-			if (typeof threeBackUser.content === "string") {
+	// Place cache breakpoint ~4 messages from the tail (counting ALL messages, not just user turns).
+	// This ensures the breakpoint advances on every API call — including intra-turn tool loops —
+	// keeping it within the 20-block lookback window for delta writes.
+	const BLOCK_LAG = 5; // leave ~4 messages uncached after this breakpoint (slot 4 covers the tail)
+	const targetIndex = params.messages.length - BLOCK_LAG;
+	if (targetIndex > 0) {
+		// Walk backward from target to find the nearest user-role message
+		// (cache_control can only be placed on user/tool_result content blocks)
+		let stableIndex = -1;
+		for (let i = targetIndex; i >= 0; i--) {
+			if (params.messages[i].role === "user") {
+				stableIndex = i;
+				break;
+			}
+		}
+		if (stableIndex >= 0) {
+			const stableMsg = params.messages[stableIndex];
+			if (typeof stableMsg.content === "string") {
 				const contentBlock: ContentBlockParam & CacheControlBlock = {
 					type: "text",
-					text: threeBackUser.content,
+					text: stableMsg.content,
 					cache_control: cacheControl,
 				};
-				threeBackUser.content = [contentBlock];
+				stableMsg.content = [contentBlock];
 				cacheBreakpointsUsed++;
-			} else if (Array.isArray(threeBackUser.content) && threeBackUser.content.length > 0) {
+			} else if (Array.isArray(stableMsg.content) && stableMsg.content.length > 0) {
 				applyCacheControlToLastTextBlock(
-					threeBackUser.content as Array<ContentBlockParam & CacheControlBlock>,
+					stableMsg.content as Array<ContentBlockParam & CacheControlBlock>,
 					cacheControl,
 				);
 				cacheBreakpointsUsed++;
@@ -1179,23 +1186,28 @@ function applyPromptCaching(params: MessageCreateParamsStreaming, cacheControl?:
 
 	if (cacheBreakpointsUsed >= MAX_CACHE_BREAKPOINTS) return;
 
-	if (userIndexes.length >= 1) {
-		const lastUserIndex = userIndexes[userIndexes.length - 1];
+	// Place final breakpoint on the last user message (the uncached tail boundary)
+	let lastUserIndex = -1;
+	for (let i = params.messages.length - 1; i >= 0; i--) {
+		if (params.messages[i].role === "user") {
+			lastUserIndex = i;
+			break;
+		}
+	}
+	if (lastUserIndex >= 0) {
 		const lastUser = params.messages[lastUserIndex];
-		if (lastUser) {
-			if (typeof lastUser.content === "string") {
-				const contentBlock: ContentBlockParam & CacheControlBlock = {
-					type: "text",
-					text: lastUser.content,
-					cache_control: cacheControl,
-				};
-				lastUser.content = [contentBlock];
-			} else if (Array.isArray(lastUser.content) && lastUser.content.length > 0) {
-				applyCacheControlToLastTextBlock(
-					lastUser.content as Array<ContentBlockParam & CacheControlBlock>,
-					cacheControl,
-				);
-			}
+		if (typeof lastUser.content === "string") {
+			const contentBlock: ContentBlockParam & CacheControlBlock = {
+				type: "text",
+				text: lastUser.content,
+				cache_control: cacheControl,
+			};
+			lastUser.content = [contentBlock];
+		} else if (Array.isArray(lastUser.content) && lastUser.content.length > 0) {
+			applyCacheControlToLastTextBlock(
+				lastUser.content as Array<ContentBlockParam & CacheControlBlock>,
+				cacheControl,
+			);
 		}
 	}
 }

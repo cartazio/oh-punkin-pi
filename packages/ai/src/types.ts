@@ -171,7 +171,7 @@ export interface StreamOptions {
 	apiKey?: string;
 	/**
 	 * Prompt cache retention preference. Providers map this to their supported values.
-	 * Default: "short".
+	 * Default: "long".
 	 */
 	cacheRetention?: CacheRetention;
 	/**
