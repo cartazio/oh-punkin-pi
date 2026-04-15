@@ -3,6 +3,7 @@ export * from "./assistant-message";
 export * from "./bash-execution";
 export * from "./bordered-loader";
 export * from "./branch-summary-message";
+export * from "./build-info-line";
 export * from "./compaction-summary-message";
 export * from "./countdown-timer";
 export * from "./custom-editor";

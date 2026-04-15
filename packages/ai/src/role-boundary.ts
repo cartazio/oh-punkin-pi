@@ -549,6 +549,7 @@ const NYC_FORMAT = new Intl.DateTimeFormat("en-US", {
 	second: "2-digit",
 	hour12: false,
 	fractionalSecondDigits: 3,
+	timeZoneName: "longOffset",
 });
 
 /** Format ms-since-epoch as full ISO 8601 in America/New_York. */
@@ -563,18 +564,9 @@ export function formatTimestamp(ms: number): string {
 	const minute = get("minute");
 	const second = get("second");
 	const frac = get("fractionalSecond");
+	const offset = get("timeZoneName").replace(/^GMT/, "");
 
-	// Compute UTC offset for America/New_York at this instant
-	const d = new Date(ms);
-	const utcMs = d.getTime() + d.getTimezoneOffset() * 60_000;
-	const nycMs = new Date(d.toLocaleString("en-US", { timeZone: "America/New_York" })).getTime();
-	const offsetMin = (nycMs - utcMs) / 60_000;
-	const offsetSign = offsetMin >= 0 ? "+" : "-";
-	const absOffset = Math.abs(offsetMin);
-	const offsetH = String(Math.floor(absOffset / 60)).padStart(2, "0");
-	const offsetM = String(absOffset % 60).padStart(2, "0");
-
-	return `${year}-${month}-${day}T${hour}:${minute}:${second}.${frac}${offsetSign}${offsetH}:${offsetM}`;
+	return `${year}-${month}-${day}T${hour}:${minute}:${second}.${frac}${offset}`;
 }
 
 /** Format ms-since-epoch as short timestamp with NYC suffix for TUI display. */
