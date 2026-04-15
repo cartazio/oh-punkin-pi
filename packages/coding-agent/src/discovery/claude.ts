@@ -153,27 +153,21 @@ async function loadMCPServers(ctx: LoadContext): Promise<LoadResult<MCPServer>> 
 }
 
 // =============================================================================
-// Context Files (CLAUDE.md / AGENT.md)
+// Context Files (~/.agent/ or ~/.claude/CLAUDE.md)
 // =============================================================================
+
+/** Additional user-level files loaded from ~/.agent/ alongside AGENT.md */
+const AGENT_DIR_EXTRA_FILES = ["coding-prefs.md"];
 
 async function loadContextFiles(ctx: LoadContext): Promise<LoadResult<ContextFile>> {
 	const items: ContextFile[] = [];
 	const warnings: string[] = [];
 
-	const userBase = getUserClaude(ctx);
-	const userClaudeMd = path.join(userBase, "CLAUDE.md");
-
-	const userContent = await readFile(userClaudeMd);
-	if (userContent !== null) {
-		items.push({
-			path: userClaudeMd,
-			content: userContent,
-			level: "user",
-			_source: createSourceMeta(PROVIDER_ID, userClaudeMd, "user"),
-		});
-	}
-
 	const agentMd = await getAgentMd(ctx);
+
+	// When ~/.agent/AGENT.md exists, ~/.agent/ is the sole user-level authority —
+	// ~/.claude/CLAUDE.md is suppressed (hot override).
+	// All recognized files in ~/.agent/ are loaded as user-level context.
 	if (agentMd !== null) {
 		const variations = ["AGENT.md", "agent.md", "AGENT.MD", "Agent.md"];
 		for (const filename of variations) {
@@ -188,6 +182,33 @@ async function loadContextFiles(ctx: LoadContext): Promise<LoadResult<ContextFil
 				});
 				break;
 			}
+		}
+
+		// Load additional user-level files from ~/.agent/
+		for (const extra of AGENT_DIR_EXTRA_FILES) {
+			const extraPath = path.join(ctx.home, AGENT_DIR, extra);
+			const content = await readFile(extraPath);
+			if (content !== null) {
+				items.push({
+					path: extraPath,
+					content,
+					level: "user",
+					_source: createSourceMeta(PROVIDER_ID, extraPath, "user"),
+				});
+			}
+		}
+	} else {
+		// No agent.md — fall back to ~/.claude/CLAUDE.md
+		const userBase = getUserClaude(ctx);
+		const userClaudeMd = path.join(userBase, "CLAUDE.md");
+		const userContent = await readFile(userClaudeMd);
+		if (userContent !== null) {
+			items.push({
+				path: userClaudeMd,
+				content: userContent,
+				level: "user",
+				_source: createSourceMeta(PROVIDER_ID, userClaudeMd, "user"),
+			});
 		}
 	}
 

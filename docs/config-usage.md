@@ -142,8 +142,8 @@ Legacy migration still supported:
 
 The runtime settings model is layered:
 
-1. Global settings: `~/.omp/agent/config.yml`
-2. Project settings: discovered via settings capability (`settings.json` from providers)
+1. Global settings: `~/.ohp/agent/config.yml`
+2. Project settings: discovered via native settings capability (`settings.toml` from `.ohp` roots)
 3. Runtime overrides: in-memory, non-persistent
 4. Schema defaults: from `SETTINGS_SCHEMA`
 
@@ -234,7 +234,7 @@ Native provider (`id: native`) reads from:
 - Tools: `tools/*.json|*.md` and `tools/<name>/index.ts`
 - Extension modules: discovered under `extensions/` (+ legacy `settings.json.extensions` string array)
 - Extensions: `extensions/<name>/gemini-extension.json`
-- Settings capability: `settings.json`
+- Settings capability: `settings.toml`
 
 ### Nearest-project lookup nuance
 

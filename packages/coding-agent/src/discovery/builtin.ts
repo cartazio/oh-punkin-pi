@@ -68,6 +68,30 @@ async function getConfigDirs(ctx: LoadContext): Promise<Array<{ dir: string; lev
 	return result;
 }
 
+async function loadPreferredSettingsFile(
+	dir: string,
+	warnings: string[],
+): Promise<{ path: string; data: Record<string, unknown> } | null> {
+	const settingsPath = path.join(dir, "settings.toml");
+	const content = await readFile(settingsPath);
+	if (!content) return null;
+
+	try {
+		const parsed = Bun.TOML.parse(content);
+		if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+			return { path: settingsPath, data: parsed as Record<string, unknown> };
+		}
+		warnings.push(`Failed to parse ${settingsPath}: top-level TOML value must be an object`);
+	} catch (error) {
+		const message = error instanceof Error ? error.message : String(error);
+		warnings.push(`Failed to parse ${settingsPath}: ${message}`);
+	}
+
+	return null;
+
+	return null;
+}
+
 function getAncestorDirs(cwd: string, stopAt?: string | null): Array<{ dir: string; depth: number }> {
 	const ancestors: Array<{ dir: string; depth: number }> = [];
 	let current = cwd;
@@ -410,10 +434,9 @@ async function loadExtensionModules(ctx: LoadContext): Promise<LoadResult<Extens
 
 	const configDirs = await getConfigDirs(ctx);
 
-	const [discoveredResults, settingsResults] = await Promise.all([
-		Promise.all(configDirs.map(({ dir }) => discoverExtensionModulePaths(ctx, path.join(dir, "extensions")))),
-		Promise.all(configDirs.map(({ dir }) => readFile(path.join(dir, "settings.json")))),
-	]);
+	const discoveredResults = await Promise.all(
+		configDirs.map(({ dir }) => discoverExtensionModulePaths(ctx, path.join(dir, "extensions"))),
+	);
 
 	for (let i = 0; i < configDirs.length; i++) {
 		const { level } = configDirs[i];
@@ -430,12 +453,11 @@ async function loadExtensionModules(ctx: LoadContext): Promise<LoadResult<Extens
 
 	for (let i = 0; i < configDirs.length; i++) {
 		const { dir, level } = configDirs[i];
-		const settingsContent = settingsResults[i];
-		if (!settingsContent) continue;
+		const settingsFile = await loadPreferredSettingsFile(dir, warnings);
+		if (!settingsFile) continue;
 
-		const settingsPath = path.join(dir, "settings.json");
-		const settingsData = tryParseJson<{ extensions?: unknown }>(settingsContent);
-		const extensions = settingsData?.extensions;
+		const { path: settingsPath, data: settingsData } = settingsFile;
+		const extensions = settingsData.extensions;
 		if (!Array.isArray(extensions)) continue;
 
 		for (const entry of extensions) {
@@ -780,21 +802,14 @@ async function loadSettings(ctx: LoadContext): Promise<LoadResult<Settings>> {
 	const warnings: string[] = [];
 
 	for (const { dir, level } of await getConfigDirs(ctx)) {
-		const settingsPath = path.join(dir, "settings.json");
-		const content = await readFile(settingsPath);
-		if (!content) continue;
-
-		const data = tryParseJson<Record<string, unknown>>(content);
-		if (!data) {
-			warnings.push(`Failed to parse ${settingsPath}`);
-			continue;
-		}
+		const settingsFile = await loadPreferredSettingsFile(dir, warnings);
+		if (!settingsFile) continue;
 
 		items.push({
-			path: settingsPath,
-			data,
+			path: settingsFile.path,
+			data: settingsFile.data,
 			level,
-			_source: createSourceMeta(PROVIDER_ID, settingsPath, level),
+			_source: createSourceMeta(PROVIDER_ID, settingsFile.path, level),
 		});
 	}
 

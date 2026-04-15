@@ -335,15 +335,24 @@ export async function loadProjectContextFiles(
 
 	const result = await loadCapability(contextFileCapability.id, { cwd: resolvedCwd });
 
-	// Convert ContextFile items and preserve depth info
-	const files = result.items.map(item => {
+	// Convert ContextFile items and preserve depth + level info
+	let files = result.items.map(item => {
 		const contextFile = item as ContextFile;
 		return {
 			path: contextFile.path,
 			content: contextFile.content,
 			depth: contextFile.depth,
+			level: contextFile.level,
 		};
 	});
+
+	// When ~/.agent/ files are present they are the sole user-level authority.
+	// Suppress all other user-level context files from every provider.
+	const agentDir = path.join(os.homedir(), ".agent") + path.sep;
+	const hasAgentDir = files.some(f => f.level === "user" && f.path.startsWith(agentDir));
+	if (hasAgentDir) {
+		files = files.filter(f => f.level !== "user" || f.path.startsWith(agentDir));
+	}
 
 	// Sort by depth (descending): higher depth (farther from cwd) comes first,
 	// so files closer to cwd appear later and are more prominent
