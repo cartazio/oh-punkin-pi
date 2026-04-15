@@ -509,6 +509,10 @@ export class AgentSession {
 	#postPromptTasksPromise: Promise<void> | undefined = undefined;
 	#postPromptTasksResolve: (() => void) | undefined = undefined;
 	#postPromptTasksAbortController = new AbortController();
+	#eventTaskCounter = 0;
+	#eventTaskIds = new Set<number>();
+	#eventTasksPromise: Promise<void> | undefined = undefined;
+	#eventTasksResolve: (() => void) | undefined = undefined;
 
 	#streamingEditAbortTriggered = false;
 	#streamingEditCheckedLineCounts = new Map<string, number>();
@@ -770,329 +774,345 @@ export class AgentSession {
 
 	/** Internal handler for agent events - shared by subscribe and reconnect */
 	#handleAgentEvent = async (event: AgentEvent): Promise<void> => {
-		// When a user message starts, check if it's from either queue and remove it BEFORE emitting
-		// This ensures the UI sees the updated queue state
-		if (event.type === "message_start" && event.message.role === "user") {
-			const messageText = this.#getUserMessageText(event.message);
-			if (messageText) {
-				// Check steering queue first
-				const steeringIndex = this.#steeringMessages.indexOf(messageText);
-				if (steeringIndex !== -1) {
-					this.#steeringMessages.splice(steeringIndex, 1);
-				} else {
-					// Check follow-up queue
-					const followUpIndex = this.#followUpMessages.indexOf(messageText);
-					if (followUpIndex !== -1) {
-						this.#followUpMessages.splice(followUpIndex, 1);
+		const eventTaskId = ++this.#eventTaskCounter;
+		this.#eventTaskIds.add(eventTaskId);
+		this.#ensureEventTasksPromise();
+		try {
+			// When a user message starts, check if it's from either queue and remove it BEFORE emitting
+			// This ensures the UI sees the updated queue state
+			if (event.type === "message_start" && event.message.role === "user") {
+				const messageText = this.#getUserMessageText(event.message);
+				if (messageText) {
+					// Check steering queue first
+					const steeringIndex = this.#steeringMessages.indexOf(messageText);
+					if (steeringIndex !== -1) {
+						this.#steeringMessages.splice(steeringIndex, 1);
+					} else {
+						// Check follow-up queue
+						const followUpIndex = this.#followUpMessages.indexOf(messageText);
+						if (followUpIndex !== -1) {
+							this.#followUpMessages.splice(followUpIndex, 1);
+						}
 					}
 				}
 			}
-		}
+			const handledTtsrUpdate = this.#maybeHandleTtsrMessageUpdate(event);
 
-		await this.#emitSessionEvent(event);
+			await this.#emitSessionEvent(event);
 
-		if (event.type === "turn_start") {
-			this.#carterKitHook?.onAssistantTurnStart();
-			const turnStart = this.#carterKitHook?.currentTurnStartMessage();
-			if (turnStart) {
-				this.agent.appendMessage(turnStart as AgentMessage);
-				this.sessionManager.appendMessage(turnStart);
-				// Emit the turnStart message so the UI can render it
-				this.#emit({ type: "message_start", message: turnStart as AgentMessage });
-			}
-			this.#carterKitTurnStartIndex = this.agent.state.messages.length;
-			this.#resetStreamingEditState();
-			// TTSR: Reset buffer on turn start
-			this.#ttsrManager?.resetBuffer();
-		}
-
-		// TTSR: Increment message count on turn end (for repeat-after-gap tracking)
-		if (event.type === "turn_end") {
-			if (this.#carterKitHook) {
-				const endIndex = this.agent.state.messages.length;
-				const startIndex = Math.min(this.#carterKitTurnStartIndex ?? endIndex, endIndex);
-				const turnMessages = this.agent.state.messages.slice(startIndex, endIndex);
-				if (turnMessages.length > 0) {
-					const [, turnEnd] = this.#carterKitHook.onAssistantTurnEnd(turnMessages);
-					this.agent.appendMessage(turnEnd as AgentMessage);
-					this.sessionManager.appendMessage(turnEnd);
-					// Emit the turnEnd message so the UI can render it
-					this.#emit({ type: "message_start", message: turnEnd as AgentMessage });
+			if (event.type === "turn_start") {
+				this.#carterKitHook?.onAssistantTurnStart();
+				const turnStart = this.#carterKitHook?.currentTurnStartMessage();
+				if (turnStart) {
+					this.agent.appendMessage(turnStart as AgentMessage);
+					this.sessionManager.appendMessage(turnStart);
+					// Emit the turnStart message so the UI can render it
+					this.#emit({ type: "message_start", message: turnStart as AgentMessage });
 				}
-				this.#carterKitHook.turnEnd(event.message);
-				this.#carterKitTurnStartIndex = undefined;
-			}
-			if (this.#ttsrManager) {
-				this.#ttsrManager.incrementMessageCount();
-			}
-			if (this.#pendingRewindReport) {
-				const report = this.#pendingRewindReport;
-				this.#pendingRewindReport = undefined;
-				await this.#applyRewind(report);
-			}
-		}
-
-		// TTSR: Check for pattern matches on assistant text/thinking and tool argument deltas
-		if (event.type === "message_update" && this.#ttsrManager?.hasRules()) {
-			const assistantEvent = event.assistantMessageEvent;
-			let matchContext: TtsrMatchContext | undefined;
-
-			if (assistantEvent.type === "text_delta") {
-				matchContext = { source: "text" };
-			} else if (assistantEvent.type === "thinking_delta") {
-				matchContext = { source: "thinking" };
-			} else if (assistantEvent.type === "toolcall_delta") {
-				matchContext = this.#getTtsrToolMatchContext(event.message, assistantEvent.contentIndex);
+				this.#carterKitTurnStartIndex = this.agent.state.messages.length;
+				this.#resetStreamingEditState();
+				// TTSR: Reset buffer on turn start
+				this.#ttsrManager?.resetBuffer();
 			}
 
-			if (matchContext && "delta" in assistantEvent) {
-				const matches = this.#ttsrManager.checkDelta(assistantEvent.delta, matchContext);
-				if (matches.length > 0) {
-					// Queue rules for injection; mark as injected only after successful enqueue.
-
-					this.#addPendingTtsrInjections(matches);
-
-					if (this.#shouldInterruptForTtsrMatch(matches, matchContext)) {
-						// Abort the stream immediately — do not gate on extension callbacks
-						this.#ttsrAbortPending = true;
-						this.#ensureTtsrResumePromise();
-						this.agent.abort();
-						// Notify extensions (fire-and-forget, does not block abort)
-						this.#emitSessionEvent({ type: "ttsr_triggered", rules: matches }).catch(() => {});
-						// Schedule retry after a short delay
-						const retryToken = ++this.#ttsrRetryToken;
-						const generation = this.#promptGeneration;
-						const targetMessageTimestamp =
-							event.message.role === "assistant" ? event.message.timestamp : undefined;
-						this.#schedulePostPromptTask(
-							async () => {
-								if (this.#ttsrRetryToken !== retryToken) {
-									this.#resolveTtsrResume();
-									return;
-								}
-
-								const targetAssistantIndex = this.#findTtsrAssistantIndex(targetMessageTimestamp);
-								if (
-									!this.#ttsrAbortPending ||
-									this.#promptGeneration !== generation ||
-									targetAssistantIndex === -1
-								) {
-									this.#ttsrAbortPending = false;
-									this.#pendingTtsrInjections = [];
-									this.#resolveTtsrResume();
-									return;
-								}
-								this.#ttsrAbortPending = false;
-								const ttsrSettings = this.#ttsrManager?.getSettings();
-								if (ttsrSettings?.contextMode === "discard") {
-									// Remove the partial/aborted assistant turn from agent state
-									this.agent.replaceMessages(this.agent.state.messages.slice(0, targetAssistantIndex));
-								}
-								// Inject TTSR rules as system reminder before retry
-								const injection = this.#getTtsrInjectionContent();
-								if (injection) {
-									const details = { rules: injection.rules.map(rule => rule.name) };
-									this.agent.appendMessage({
-										role: "custom",
-										customType: "ttsr-injection",
-										content: injection.content,
-										display: false,
-										bracketId: generateUserBracketId(),
-										details,
-										attribution: "agent",
-										timestamp: Date.now(),
-									});
-									this.sessionManager.appendCustomMessageEntry(
-										"ttsr-injection",
-										injection.content,
-										false,
-										details,
-										"agent",
-									);
-									this.#markTtsrInjected(details.rules);
-								}
-								try {
-									await this.agent.continue();
-								} catch {
-									this.#resolveTtsrResume();
-								}
-							},
-							{ delayMs: 50 },
-						);
-						return;
+			// TTSR: Increment message count on turn end (for repeat-after-gap tracking)
+			if (event.type === "turn_end") {
+				if (this.#carterKitHook) {
+					const endIndex = this.agent.state.messages.length;
+					const startIndex = Math.min(this.#carterKitTurnStartIndex ?? endIndex, endIndex);
+					const turnMessages = this.agent.state.messages.slice(startIndex, endIndex);
+					if (turnMessages.length > 0) {
+						const [, turnEnd] = this.#carterKitHook.onAssistantTurnEnd(turnMessages);
+						this.agent.appendMessage(turnEnd as AgentMessage);
+						this.sessionManager.appendMessage(turnEnd);
+						// Emit the turnEnd message so the UI can render it
+						this.#emit({ type: "message_start", message: turnEnd as AgentMessage });
 					}
+					this.#carterKitHook.turnEnd(event.message);
+					this.#carterKitTurnStartIndex = undefined;
 				}
-			}
-		}
-
-		if (event.type === "message_update" && event.assistantMessageEvent.type === "toolcall_start") {
-			this.#preCacheStreamingEditFile(event);
-		}
-
-		if (
-			event.type === "message_update" &&
-			(event.assistantMessageEvent.type === "toolcall_end" || event.assistantMessageEvent.type === "toolcall_delta")
-		) {
-			this.#maybeAbortStreamingEdit(event);
-		}
-
-		// Handle session persistence
-		if (event.type === "message_end") {
-			// Check if this is a hook/custom message
-			if (event.message.role === "hookMessage" || event.message.role === "custom") {
-				// Persist as CustomMessageEntry
-				this.sessionManager.appendCustomMessageEntry(
-					event.message.customType,
-					event.message.content,
-					event.message.display,
-					event.message.details,
-					event.message.attribution ?? "agent",
-				);
-				if (event.message.role === "custom" && event.message.customType === "ttsr-injection") {
-					this.#markTtsrInjected(this.#extractTtsrRuleNames(event.message.details));
+				if (this.#ttsrManager) {
+					this.#ttsrManager.incrementMessageCount();
 				}
-			} else if (
-				event.message.role === "user" ||
-				event.message.role === "developer" ||
-				event.message.role === "assistant" ||
-				event.message.role === "toolResult" ||
-				event.message.role === "fileMention"
-			) {
-				// Regular LLM message - persist as SessionMessageEntry
-				this.sessionManager.appendMessage(event.message);
-			}
-			// Other message types (bashExecution, compactionSummary, branchSummary) are persisted elsewhere
-
-			// Track assistant message for auto-compaction (checked on agent_end)
-			if (event.message.role === "assistant") {
-				this.#lastAssistantMessage = event.message;
-				const assistantMsg = event.message as AssistantMessage;
-				// Resolve TTSR resume gate before checking for new deferred injections.
-				// Gate on #ttsrAbortPending, not stopReason: a non-TTSR abort (e.g. streaming
-				// edit) also produces stopReason === "aborted" but has no continuation coming.
-				// Only skip when #ttsrAbortPending is true (TTSR continuation is imminent).
-				if (!this.#ttsrAbortPending) {
-					this.#resolveTtsrResume();
-				}
-				this.#queueDeferredTtsrInjectionIfNeeded(assistantMsg);
-				if (this.#handoffAbortController) {
-					this.#skipPostTurnMaintenanceAssistantTimestamp = assistantMsg.timestamp;
-				}
-				if (
-					assistantMsg.stopReason !== "error" &&
-					assistantMsg.stopReason !== "aborted" &&
-					this.#retryAttempt > 0
-				) {
-					if (this.#activeRetryFallback && this.model) {
-						await this.#emitSessionEvent({
-							type: "retry_fallback_succeeded",
-							model: formatRetryFallbackSelector(this.model, this.thinkingLevel),
-							role: this.#activeRetryFallback.role,
-						});
-					}
-					await this.#emitSessionEvent({
-						type: "auto_retry_end",
-						success: true,
-						attempt: this.#retryAttempt,
-					});
-					this.#retryAttempt = 0;
-				}
-			}
-
-			if (event.message.role === "toolResult") {
-				const { toolName, details, isError, content } = event.message as {
-					toolName?: string;
-					details?: { path?: string; phases?: TodoPhase[]; report?: string; startedAt?: string };
-					isError?: boolean;
-					content?: Array<TextContent | ImageContent>;
-				};
-				// Invalidate streaming edit cache when edit tool completes to prevent stale data
-				if (toolName === "edit" && details?.path) {
-					this.#invalidateFileCacheForPath(details.path);
-				}
-				if (toolName === "todo_write" && !isError && Array.isArray(details?.phases)) {
-					this.setTodoPhases(details.phases);
-				}
-				if (toolName === "todo_write" && isError) {
-					const errorText = content?.find(part => part.type === "text")?.text;
-					const reminderText = [
-						"<system-reminder>",
-						"todo_write failed, so todo progress is not visible to the user.",
-						errorText ? `Failure: ${errorText}` : "Failure: todo_write returned an error.",
-						"Fix the todo payload and call todo_write again before continuing.",
-						"</system-reminder>",
-					].join("\n");
-					await this.sendCustomMessage(
-						{
-							customType: "todo-write-error-reminder",
-							content: reminderText,
-							display: false,
-							details: { toolName, errorText },
-						},
-						{ deliverAs: "nextTurn" },
-					);
-				}
-				if (toolName === "checkpoint" && !isError) {
-					const checkpointEntryId = this.sessionManager.getEntries().at(-1)?.id ?? null;
-					this.#checkpointState = {
-						checkpointMessageCount: this.agent.state.messages.length,
-						checkpointEntryId,
-						startedAt: details?.startedAt ?? new Date().toISOString(),
-					};
+				if (this.#pendingRewindReport) {
+					const report = this.#pendingRewindReport;
 					this.#pendingRewindReport = undefined;
+					await this.#applyRewind(report);
 				}
-				if (toolName === "rewind" && !isError && this.#checkpointState) {
-					const detailReport = typeof details?.report === "string" ? details.report.trim() : "";
-					const textReport = content?.find(part => part.type === "text")?.text?.trim() ?? "";
-					const report = detailReport || textReport;
-					if (report.length > 0) {
-						this.#pendingRewindReport = report;
+			}
+
+			if (!handledTtsrUpdate && event.type === "message_update" && this.#ttsrManager?.hasRules()) {
+				this.#maybeHandleTtsrMessageUpdate(event);
+			}
+
+			if (event.type === "message_update" && event.assistantMessageEvent.type === "toolcall_start") {
+				this.#preCacheStreamingEditFile(event);
+			}
+
+			if (
+				event.type === "message_update" &&
+				(event.assistantMessageEvent.type === "toolcall_end" ||
+					event.assistantMessageEvent.type === "toolcall_delta")
+			) {
+				this.#maybeAbortStreamingEdit(event);
+			}
+
+			// Handle session persistence
+			if (event.type === "message_end") {
+				// Check if this is a hook/custom message
+				if (event.message.role === "hookMessage" || event.message.role === "custom") {
+					// Persist as CustomMessageEntry
+					this.sessionManager.appendCustomMessageEntry(
+						event.message.customType,
+						event.message.content,
+						event.message.display,
+						event.message.details,
+						event.message.attribution ?? "agent",
+					);
+					if (event.message.role === "custom" && event.message.customType === "ttsr-injection") {
+						this.#markTtsrInjected(this.#extractTtsrRuleNames(event.message.details));
+					}
+				} else if (
+					event.message.role === "user" ||
+					event.message.role === "developer" ||
+					event.message.role === "assistant" ||
+					event.message.role === "toolResult" ||
+					event.message.role === "fileMention"
+				) {
+					// Regular LLM message - persist as SessionMessageEntry
+					this.sessionManager.appendMessage(event.message);
+				}
+				// Other message types (bashExecution, compactionSummary, branchSummary) are persisted elsewhere
+
+				// Track assistant message for auto-compaction (checked on agent_end)
+				if (event.message.role === "assistant") {
+					this.#lastAssistantMessage = event.message;
+					const assistantMsg = event.message as AssistantMessage;
+					// Queue any deferred TTSR follow-up after the assistant message lands. The
+					// resume gate resolves from agent_end so prompt() waits for the whole
+					// logical continuation, including tool execution and any final assistant turn.
+					this.#queueDeferredTtsrInjectionIfNeeded(assistantMsg);
+					if (this.#handoffAbortController) {
+						this.#skipPostTurnMaintenanceAssistantTimestamp = assistantMsg.timestamp;
+					}
+					if (
+						assistantMsg.stopReason !== "error" &&
+						assistantMsg.stopReason !== "aborted" &&
+						this.#retryAttempt > 0
+					) {
+						if (this.#activeRetryFallback && this.model) {
+							await this.#emitSessionEvent({
+								type: "retry_fallback_succeeded",
+								model: formatRetryFallbackSelector(this.model, this.thinkingLevel),
+								role: this.#activeRetryFallback.role,
+							});
+						}
+						await this.#emitSessionEvent({
+							type: "auto_retry_end",
+							success: true,
+							attempt: this.#retryAttempt,
+						});
+						this.#retryAttempt = 0;
+					}
+				}
+
+				if (event.message.role === "toolResult") {
+					const { toolName, details, isError, content } = event.message as {
+						toolName?: string;
+						details?: { path?: string; phases?: TodoPhase[]; report?: string; startedAt?: string };
+						isError?: boolean;
+						content?: Array<TextContent | ImageContent>;
+					};
+					// Invalidate streaming edit cache when edit tool completes to prevent stale data
+					if (toolName === "edit" && details?.path) {
+						this.#invalidateFileCacheForPath(details.path);
+					}
+					if (toolName === "todo_write" && !isError && Array.isArray(details?.phases)) {
+						this.setTodoPhases(details.phases);
+					}
+					if (toolName === "todo_write" && isError) {
+						const errorText = content?.find(part => part.type === "text")?.text;
+						const reminderText = [
+							"<system-reminder>",
+							"todo_write failed, so todo progress is not visible to the user.",
+							errorText ? `Failure: ${errorText}` : "Failure: todo_write returned an error.",
+							"Fix the todo payload and call todo_write again before continuing.",
+							"</system-reminder>",
+						].join("\n");
+						await this.sendCustomMessage(
+							{
+								customType: "todo-write-error-reminder",
+								content: reminderText,
+								display: false,
+								details: { toolName, errorText },
+							},
+							{ deliverAs: "nextTurn" },
+						);
+					}
+					if (toolName === "checkpoint" && !isError) {
+						const checkpointEntryId = this.sessionManager.getEntries().at(-1)?.id ?? null;
+						this.#checkpointState = {
+							checkpointMessageCount: this.agent.state.messages.length,
+							checkpointEntryId,
+							startedAt: details?.startedAt ?? new Date().toISOString(),
+						};
+						this.#pendingRewindReport = undefined;
+					}
+					if (toolName === "rewind" && !isError && this.#checkpointState) {
+						const detailReport = typeof details?.report === "string" ? details.report.trim() : "";
+						const textReport = content?.find(part => part.type === "text")?.text?.trim() ?? "";
+						const report = detailReport || textReport;
+						if (report.length > 0) {
+							this.#pendingRewindReport = report;
+						}
 					}
 				}
 			}
-		}
 
-		// Check auto-retry and auto-compaction after agent completes
-		if (event.type === "agent_end") {
-			const fallbackAssistant = [...event.messages]
-				.reverse()
-				.find((message): message is AssistantMessage => message.role === "assistant");
-			const msg = this.#lastAssistantMessage ?? fallbackAssistant;
-			this.#lastAssistantMessage = undefined;
-			if (!msg) return;
+			// Check auto-retry and auto-compaction after agent completes
+			if (event.type === "agent_end") {
+				const fallbackAssistant = [...event.messages]
+					.reverse()
+					.find((message): message is AssistantMessage => message.role === "assistant");
+				const msg = this.#lastAssistantMessage ?? fallbackAssistant;
+				this.#lastAssistantMessage = undefined;
+				if (!msg) return;
 
-			if (this.#skipPostTurnMaintenanceAssistantTimestamp === msg.timestamp) {
-				this.#skipPostTurnMaintenanceAssistantTimestamp = undefined;
-				return;
-			}
-
-			// Check for retryable errors first (overloaded, rate limit, server errors)
-			if (this.#isRetryableError(msg)) {
-				const didRetry = await this.#handleRetryableError(msg);
-				if (didRetry) return; // Retry was initiated, don't proceed to compaction
-			}
-			this.#resolveRetry();
-
-			if (msg.stopReason === "aborted" && this.#checkpointState) {
-				this.#checkpointState = undefined;
-				this.#pendingRewindReport = undefined;
-			}
-			const compactionTask = this.#checkCompaction(msg);
-			this.#trackPostPromptTask(compactionTask);
-			await compactionTask;
-			// Check for incomplete todos only after a final assistant stop, not intermediate tool-use turns.
-			const hasToolCalls = msg.content.some(content => content.type === "toolCall");
-			if (hasToolCalls) {
-				return;
-			}
-			if (msg.stopReason !== "error" && msg.stopReason !== "aborted") {
-				if (this.#enforceRewindBeforeYield()) {
+				if (this.#skipPostTurnMaintenanceAssistantTimestamp === msg.timestamp) {
+					this.#skipPostTurnMaintenanceAssistantTimestamp = undefined;
 					return;
 				}
-				await this.#checkTodoCompletion();
+
+				// Check for retryable errors first (overloaded, rate limit, server errors)
+				if (this.#isRetryableError(msg)) {
+					const didRetry = await this.#handleRetryableError(msg);
+					if (didRetry) return; // Retry was initiated, don't proceed to compaction
+				}
+				this.#resolveRetry();
+
+				if (msg.stopReason === "aborted" && this.#checkpointState) {
+					this.#checkpointState = undefined;
+					this.#pendingRewindReport = undefined;
+				}
+				const compactionTask = this.#checkCompaction(msg);
+				this.#trackPostPromptTask(compactionTask);
+				await compactionTask;
+				// Check for incomplete todos only after a final assistant stop, not intermediate tool-use turns.
+				const hasToolCalls = msg.content.some(content => content.type === "toolCall");
+				if (hasToolCalls) {
+					return;
+				}
+				if (msg.stopReason !== "error" && msg.stopReason !== "aborted") {
+					if (this.#enforceRewindBeforeYield()) {
+						return;
+					}
+					await this.#checkTodoCompletion();
+				}
+				if (!this.#ttsrAbortPending && msg.stopReason !== "aborted") {
+					this.#resolveTtsrResume();
+				}
+			}
+		} finally {
+			this.#eventTaskIds.delete(eventTaskId);
+			if (this.#eventTaskIds.size === 0) {
+				this.#resolveEventTasks();
 			}
 		}
 	};
+
+	#maybeHandleTtsrMessageUpdate(event: AgentEvent): boolean {
+		if (event.type !== "message_update" || !this.#ttsrManager?.hasRules()) {
+			return false;
+		}
+		const assistantEvent = event.assistantMessageEvent;
+		let matchContext: TtsrMatchContext | undefined;
+
+		if (assistantEvent.type === "text_delta") {
+			matchContext = { source: "text" };
+		} else if (assistantEvent.type === "thinking_delta") {
+			matchContext = { source: "thinking" };
+		} else if (assistantEvent.type === "toolcall_delta") {
+			matchContext = this.#getTtsrToolMatchContext(event.message, assistantEvent.contentIndex);
+		}
+
+		if (!matchContext || !("delta" in assistantEvent)) {
+			return false;
+		}
+		const matches = this.#ttsrManager.checkDelta(assistantEvent.delta, matchContext);
+		if (matches.length === 0) {
+			return false;
+		}
+		this.#addPendingTtsrInjections(matches);
+
+		if (!this.#shouldInterruptForTtsrMatch(matches, matchContext)) {
+			return true;
+		}
+
+		// Abort the stream immediately — do not gate on extension callbacks.
+		this.#ttsrAbortPending = true;
+		this.#ensureTtsrResumePromise();
+		this.agent.abort();
+		// Notify extensions (fire-and-forget, does not block abort)
+		this.#emitSessionEvent({ type: "ttsr_triggered", rules: matches }).catch(() => {});
+		// Schedule retry after a short delay
+		const retryToken = ++this.#ttsrRetryToken;
+		const generation = this.#promptGeneration;
+		const targetMessageTimestamp = event.message.role === "assistant" ? event.message.timestamp : undefined;
+		this.#schedulePostPromptTask(
+			async () => {
+				if (this.#ttsrRetryToken !== retryToken) {
+					this.#resolveTtsrResume();
+					return;
+				}
+
+				const targetAssistantIndex = this.#findTtsrAssistantIndex(targetMessageTimestamp);
+				if (!this.#ttsrAbortPending || this.#promptGeneration !== generation) {
+					this.#ttsrAbortPending = false;
+					this.#pendingTtsrInjections = [];
+					this.#resolveTtsrResume();
+					return;
+				}
+				this.#ttsrAbortPending = false;
+				const ttsrSettings = this.#ttsrManager?.getSettings();
+				if (ttsrSettings?.contextMode === "discard" && targetAssistantIndex !== -1) {
+					// Remove the partial/aborted assistant turn from agent state when it was persisted.
+					this.agent.replaceMessages(this.agent.state.messages.slice(0, targetAssistantIndex));
+				}
+				// Inject TTSR rules as system reminder before retry.
+				const injection = this.#getTtsrInjectionContent();
+				if (injection) {
+					const details = { rules: injection.rules.map(rule => rule.name) };
+					this.agent.appendMessage({
+						role: "custom",
+						customType: "ttsr-injection",
+						content: injection.content,
+						display: false,
+						bracketId: generateUserBracketId(),
+						details,
+						attribution: "agent",
+						timestamp: Date.now(),
+					});
+					this.sessionManager.appendCustomMessageEntry(
+						"ttsr-injection",
+						injection.content,
+						false,
+						details,
+						"agent",
+					);
+					this.#markTtsrInjected(details.rules);
+				}
+				try {
+					await this.#waitForAgentQuiescence();
+					await this.agent.continue();
+					await this.#waitForAgentQuiescence();
+				} catch {
+					this.#resolveTtsrResume();
+				}
+			},
+			{ delayMs: 50 },
+		);
+		return true;
+	}
 
 	/** Resolve the pending retry promise */
 	#resolveRetry(): void {
@@ -1117,6 +1137,20 @@ export class AgentSession {
 		this.#ttsrResumeResolve();
 		this.#ttsrResumeResolve = undefined;
 		this.#ttsrResumePromise = undefined;
+	}
+
+	#ensureEventTasksPromise(): void {
+		if (this.#eventTasksPromise) return;
+		const { promise, resolve } = Promise.withResolvers<void>();
+		this.#eventTasksPromise = promise;
+		this.#eventTasksResolve = resolve;
+	}
+
+	#resolveEventTasks(): void {
+		if (!this.#eventTasksResolve) return;
+		this.#eventTasksResolve();
+		this.#eventTasksResolve = undefined;
+		this.#eventTasksPromise = undefined;
 	}
 
 	#ensurePostPromptTasksPromise(): void {
@@ -1190,6 +1224,7 @@ export class AgentSession {
 				try {
 					await this.#maybeRestoreRetryFallbackPrimary();
 					await this.agent.continue();
+					await this.#waitForAgentQuiescence();
 				} catch {
 					options?.onError?.();
 				}
@@ -1208,14 +1243,40 @@ export class AgentSession {
 		this.#postPromptTaskIds.clear();
 		this.#resolvePostPromptTasks();
 	}
+	async #waitForAgentQuiescence(): Promise<void> {
+		while (true) {
+			await this.agent.waitForIdle();
+			if (
+				this.agent.state.isStreaming ||
+				this.agent.state.pendingToolCalls.size > 0 ||
+				this.agent.hasQueuedMessages()
+			) {
+				continue;
+			}
+			await Bun.sleep(0);
+			if (
+				this.agent.state.isStreaming ||
+				this.agent.state.pendingToolCalls.size > 0 ||
+				this.agent.hasQueuedMessages()
+			) {
+				continue;
+			}
+			break;
+		}
+	}
+
 	/**
 	 * Wait for retry, TTSR resume, and any background continuation to settle.
 	 * Loops because a TTSR continuation can trigger a retry (or vice-versa),
-	 * and fire-and-forget `agent.continue()` may still be streaming after
-	 * the TTSR resume gate resolves.
+	 * and the underlying agent loop can remain active while not currently streaming
+	 * (for example during tool execution between assistant segments).
 	 */
 	async #waitForPostPromptRecovery(): Promise<void> {
 		while (true) {
+			if (this.#eventTasksPromise) {
+				await this.#eventTasksPromise;
+				continue;
+			}
 			if (this.#retryPromise) {
 				await this.#retryPromise;
 				continue;
@@ -1228,11 +1289,8 @@ export class AgentSession {
 				await this.#postPromptTasksPromise;
 				continue;
 			}
-			// Tracked post-prompt tasks cover deferred continuations scheduled from
-			// event handlers. Keep the streaming fallback for direct agent activity
-			// outside the scheduler.
-			if (this.agent.state.isStreaming) {
-				await this.agent.waitForIdle();
+			await this.#waitForAgentQuiescence();
+			if (this.#retryPromise || this.#ttsrResumePromise || this.#postPromptTasksPromise) {
 				continue;
 			}
 			break;
