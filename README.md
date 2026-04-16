@@ -9,7 +9,6 @@
 <p align="center">
   <a href="https://www.npmjs.com/package/@oh-my-pi/pi-coding-agent"><img src="https://img.shields.io/npm/v/@oh-my-pi/pi-coding-agent?style=flat&colorA=222222&colorB=CB3837" alt="npm version"></a>
   <a href="https://github.com/can1357/oh-my-pi/blob/main/packages/coding-agent/CHANGELOG.md"><img src="https://img.shields.io/badge/changelog-keep-E05735?style=flat&colorA=222222" alt="Changelog"></a>
-  <a href="https://github.com/can1357/oh-my-pi/actions"><img src="https://img.shields.io/github/actions/workflow/status/can1357/oh-my-pi/ci.yml?style=flat&colorA=222222&colorB=3FB950" alt="CI"></a>
   <a href="https://github.com/can1357/oh-my-pi/blob/main/LICENSE"><img src="https://img.shields.io/github/license/can1357/oh-my-pi?style=flat&colorA=222222&colorB=58A6FF" alt="License"></a>
   <a href="https://www.typescriptlang.org"><img src="https://img.shields.io/badge/TypeScript-3178C6?style=flat&colorA=222222&logo=typescript&logoColor=white" alt="TypeScript"></a>
   <a href="https://www.rust-lang.org"><img src="https://img.shields.io/badge/Rust-DEA584?style=flat&colorA=222222&logo=rust&logoColor=white" alt="Rust"></a>
@@ -417,19 +416,13 @@ bun install -g @oh-my-pi/pi-coding-agent
 curl -fsSL https://raw.githubusercontent.com/can1357/oh-my-pi/main/scripts/install.sh | sh
 ```
 
-**Windows (PowerShell):**
-
-```powershell
-irm https://raw.githubusercontent.com/can1357/oh-my-pi/main/scripts/install.ps1 | iex
-```
 
 By default, the installer uses Bun when available (and compatible), otherwise installs the prebuilt binary.
 
 Options:
 
 - POSIX (`install.sh`): `--source`, `--binary`, `--ref <ref>`, `-r <ref>`
-- PowerShell (`install.ps1`): `-Source`, `-Binary`, `-Ref <ref>`
-- `--ref`/`-Ref` with binary mode must reference a release tag; branch/commit refs require source mode
+- `--ref` with binary mode must reference a release tag; branch/commit refs require source mode
 
 Set custom install directory with `PI_INSTALL_DIR`.
 
@@ -444,13 +437,6 @@ curl -fsSL https://raw.githubusercontent.com/can1357/oh-my-pi/main/scripts/insta
 
 # Install branch/commit via source
 curl -fsSL https://raw.githubusercontent.com/can1357/oh-my-pi/main/scripts/install.sh | sh -s -- --source --ref main
-```
-
-```powershell
-# Install release tag via binary
-& ([scriptblock]::Create((irm https://raw.githubusercontent.com/can1357/oh-my-pi/main/scripts/install.ps1))) -Binary -Ref v3.20.1
-# Install branch/commit via source
-& ([scriptblock]::Create((irm https://raw.githubusercontent.com/can1357/oh-my-pi/main/scripts/install.ps1))) -Source -Ref main
 ```
 
 ### Via [mise](https://mise.jdx.dev)
