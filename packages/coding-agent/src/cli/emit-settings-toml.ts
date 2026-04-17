@@ -264,7 +264,6 @@ function emitPrefixedBlock(
 				lines.push(`"${fullPath}" = { ${entries.join(", ")} }`);
 			}
 		} else if (Array.isArray(value) && value.length > 0 && typeof value[0] === "object" && value[0] !== null) {
-			lines.push(`"${fullPath}" = []`);
 			for (const entry of value as Array<Record<string, unknown>>) {
 				lines.push(`[["${fullPath}"]]`);
 				for (const key of Object.keys(entry).sort()) {
@@ -334,7 +333,6 @@ function renderFlat(options: EmitTomlOptions, allSettings: SettingMeta[]): strin
 				}
 			}
 		} else if (Array.isArray(value) && value.length > 0 && typeof value[0] === "object" && value[0] !== null) {
-			lines.push(`"${item.path}" = []`);
 			for (const entry of value as Array<Record<string, unknown>>) {
 				lines.push(`[["${item.path}"]]`);
 				for (const key of Object.keys(entry).sort()) lines.push(`${key} = ${formatScalar(entry[key])}`);
