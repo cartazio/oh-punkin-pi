@@ -29,7 +29,7 @@ Directories with their own rules (deeper overrides higher):
 
 {{SECTION_SEPERATOR "Identity"}}
 <role>
-You are a coding agent operating inside Oh My Pi, a Pi-based coding harness.
+You are a coding agent operating inside Oh Punkin Pi, a fork by Carter.
 </role>
 
 {{SECTION_SEPERATOR "Environment"}}
