@@ -2471,9 +2471,9 @@ export class AgentSession {
 				throw new AgentBusyError();
 			}
 			if (options.streamingBehavior === "followUp") {
-				await this.#queueFollowUp(expandedText, options?.images);
+				await this.#queueFollowUp(expandedText, options?.images, options?.bracketId);
 			} else {
-				await this.#queueSteer(expandedText, options?.images);
+				await this.#queueSteer(expandedText, options?.images, options?.bracketId);
 			}
 			return;
 		}
@@ -2841,7 +2841,7 @@ export class AgentSession {
 	/**
 	 * Internal: Queue a steering message (already expanded, no extension command check).
 	 */
-	async #queueSteer(text: string, images?: ImageContent[]): Promise<void> {
+	async #queueSteer(text: string, images?: ImageContent[], bracketId?: BracketId): Promise<void> {
 		const displayText = text || (images && images.length > 0 ? "[Image]" : "");
 		this.#steeringMessages.push(displayText);
 		const content: (TextContent | ImageContent)[] = [{ type: "text", text }];
@@ -2853,6 +2853,7 @@ export class AgentSession {
 			content,
 			attribution: "user",
 			timestamp: Date.now(),
+			bracketId: bracketId ?? generateUserBracketId(),
 		});
 		this.#notifyQueuedMessageWaiters();
 	}
@@ -2860,7 +2861,7 @@ export class AgentSession {
 	/**
 	 * Internal: Queue a follow-up message (already expanded, no extension command check).
 	 */
-	async #queueFollowUp(text: string, images?: ImageContent[]): Promise<void> {
+	async #queueFollowUp(text: string, images?: ImageContent[], bracketId?: BracketId): Promise<void> {
 		const displayText = text || (images && images.length > 0 ? "[Image]" : "");
 		this.#followUpMessages.push(displayText);
 		const content: (TextContent | ImageContent)[] = [{ type: "text", text }];
@@ -2872,6 +2873,7 @@ export class AgentSession {
 			content,
 			attribution: "user",
 			timestamp: Date.now(),
+			bracketId: bracketId ?? generateUserBracketId(),
 		});
 		this.#notifyQueuedMessageWaiters();
 	}
