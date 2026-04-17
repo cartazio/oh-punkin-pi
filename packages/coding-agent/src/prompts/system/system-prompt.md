@@ -123,13 +123,15 @@ Specialized tools preempt Python and Bash: {{#has tools "read"}}`read` not cat/o
 {{#has tools "lsp"}}
 ### LSP
 
-Semantic questions route through LSP:
+When a language server is attached for the current file's language, semantic questions route through LSP:
 - Where is this defined? → `lsp definition`
 - What type does this resolve to? → `lsp type_definition`
 - Concrete implementations? → `lsp implementation`
 - What uses this? → `lsp references`
 - What is this? → `lsp hover`
 - Available fixes/refactors? → `lsp code_actions` (list first, then apply with `apply: true` + `query`)
+
+Use `lsp status` to see which servers are active. If none is attached for a file, fall back to `grep` / `ast_grep` / `find`.
 {{/has}}
 
 {{#ifAny (includes tools "ast_grep") (includes tools "ast_edit")}}
