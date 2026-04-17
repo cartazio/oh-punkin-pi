@@ -6,7 +6,6 @@ Pause your token spend until an event occurs.
 
 <semantics>
 Returns on the **first** of these events:
-
 1. **`job_event`** — a watched background job transitions to completed/failed/cancelled.
 2. **`pending_message`** — a user message lands in the session queue.
 3. **`timeout`** — `timeoutSec` elapses (default `600` / 10 min). Not cumulative across calls — each invocation resets.
