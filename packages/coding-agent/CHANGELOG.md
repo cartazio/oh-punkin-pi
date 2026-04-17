@@ -1,6 +1,43 @@
 # Changelog
 
 ## [Unreleased]
+### Settings namespace split (breaking for config keys)
+
+- **BREAKING**: Split overloaded `providers.*` settings bucket into two distinct namespaces:
+  - `providers.{webSearch,image,parallelFetch}` → `toolServices.*` (remote tool backends)
+  - `providers.{kimiApiFormat,openaiWebsockets}` → `llmProviders.*` (LLM-vendor tuning)
+- Removed the `renameProviders` display-layer flag (`--rename-providers`/`--no-rename-providers`); true names everywhere.
+- Split the settings UI tab accordingly — dedicated `toolServices` and `llmProviders` tabs; `secrets.enabled` moved to `llmProviders`, `exa.*` to `toolServices`.
+
+### User-agent settings loader
+
+- Added `Settings.#loadUserAgentToml()` that reads `~/.agent/ohp-settings.toml` (fallback `~/.agents/ohp-settings.toml`) as an authoritative user-level source; normalizes quoted-dotted keys (`"toolServices.webSearch"`) and the synthetic `default.*` wrapper produced by the emitter back into nested shape.
+- Merge order: `global → user → project → overrides`.
+- **Hard suppression**: when `~/.agent/ohp-settings.toml` is present, `~/.ohp/agent/config.yml` is skipped as a read source. Writes still target `config.yml` so `settings.set()` remains functional. Matches Carter's `.agent/` dominance rule.
+- Fixes the stale-default sonnet-3.5 leak on fresh-cwd sessions: user-level model role defaults now actually reach the runtime.
+- Exposed `normalizeDottedKeys` and `liftSyntheticDefault` helpers for unit tests.
+
+### Settings TOML emitter bug fixes
+
+- Fixed section-scope absorption: nested records now emit as inline tables (`"default.modelRoles" = { "commit" = "...", ... }`) instead of `["default.modelRoles"]` section headers, which silently swallowed subsequent bare keys into the record.
+- Fixed arrays-of-objects emission: removed a redundant `"path" = []` prefix line that preceded `[[path]]` array-of-tables entries — spec-invalid static-then-append sequence, previously accepted only by Bun's lenient parser.
+- Fixed nested objects inside array-of-object entries (previously threw `Unsupported scalar type: object`); now JSON-escaped into a scalar string.
+
+### `await_one` refit (breaking: `await` tool renamed)
+
+- **BREAKING**: Renamed `await` tool → `await_one` (snake_case per house convention).
+- Added `timeoutSec` parameter (default `600` / 10 min). Wake-ceiling, not deadline. Not cumulative across calls — each invocation resets.
+- Added pending-user-message wake: `await_one` now returns on the **first** of `{job_event, pending_message, timeout, aborted}`. Non-cancelling — jobs keep running regardless of wake reason; the agent decides via judgment whether to `cancel_job` after a user message arrives.
+- New `AgentSession.waitForQueuedMessage(signal?)` method exposed through `ToolSession`; notifier fires from `#queueSteer` and `#queueFollowUp`.
+- Description rewritten with token-economics framing: `await_one` parks cognition spend rather than blocking a thread.
+- Updated cross-references in `bash.md` and `task.md` tool prompts.
+
+### Build + model catalog
+
+- `scripts/build-binary.sh` now runs `bun check:ts` before dependency install and regenerates `packages/ai/src/models.json` via `bun --cwd=packages/ai scripts/generate-models.ts` on every build (~5s per build). Fresh installs no longer ship a stale static catalog.
+- Regenerated `packages/ai/src/models.json` against current dynamic catalogs (pulls Claude Opus 4.7 + `us.`/`eu.`/`global.` bedrock variants; previously absent, which triggered sonnet-3.5 fallback on session restore via `DEFAULT_MODEL_PER_PROVIDER`).
+
+
 ### Added
 
 - Added `edit.manageImports` setting to enable/disable post-edit import and include management

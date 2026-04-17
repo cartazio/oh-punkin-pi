@@ -138,7 +138,7 @@ function rawDeepMerge(base: RawSettings, overrides: RawSettings): RawSettings {
 	return result;
 }
 
-function normalizeDottedKeys(raw: RawSettings): RawSettings {
+export function normalizeDottedKeys(raw: RawSettings): RawSettings {
 	const result: RawSettings = {};
 	for (const [key, value] of Object.entries(raw)) {
 		const normalized =
@@ -169,7 +169,7 @@ function normalizeDottedKeys(raw: RawSettings): RawSettings {
  * hideThinkingBlock, etc.) under a `default` prefix for presentation. This undoes
  * the wrap so `settings.get("modelRoles")` resolves via the normal top-level path.
  */
-function liftSyntheticDefault(raw: RawSettings): RawSettings {
+export function liftSyntheticDefault(raw: RawSettings): RawSettings {
 	const bucket = raw.default;
 	if (bucket === null || bucket === undefined || typeof bucket !== "object" || Array.isArray(bucket)) {
 		return raw;
