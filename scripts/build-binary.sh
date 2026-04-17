@@ -47,6 +47,9 @@ cd "$REPO_ROOT"
 echo "==> Installing dependencies..."
 bun install
 
+echo "==> Regenerating models.json (dynamic provider catalogs)..."
+bun --cwd=packages/ai scripts/generate-models.ts
+
 echo "==> Building ohp binary..."
 bun --cwd=packages/coding-agent run build:binary
 
