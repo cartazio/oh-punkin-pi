@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [20.0.0] - 2026-04-17
 ### Settings namespace split (breaking for config keys)
 
 - **BREAKING**: Split overloaded `providers.*` settings bucket into two distinct namespaces:
