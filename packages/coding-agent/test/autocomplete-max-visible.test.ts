@@ -30,29 +30,32 @@ describe("autocompleteMaxVisible setting", () => {
 	});
 
 	it("should have default value of 5", () => {
-		expect(getDefault("autocompleteMaxVisible")).toBe(5);
+		expect(getDefault("interaction.autocompleteMaxVisible")).toBe(5);
 	});
 
 	it("should return default when not configured", async () => {
 		const settings = await Settings.init({ cwd: projectDir, agentDir });
-		expect(settings.get("autocompleteMaxVisible")).toBe(5);
+		expect(settings.get("interaction.autocompleteMaxVisible")).toBe(5);
 	});
 
 	it("should persist and read back a configured value", async () => {
 		const settings = await Settings.init({ cwd: projectDir, agentDir });
-		settings.set("autocompleteMaxVisible", 10);
+		settings.set("interaction.autocompleteMaxVisible", 10);
 		await settings.flush();
 
 		// Re-init to verify persistence
 		_resetSettingsForTest();
 		const settings2 = await Settings.init({ cwd: projectDir, agentDir });
-		expect(settings2.get("autocompleteMaxVisible")).toBe(10);
+		expect(settings2.get("interaction.autocompleteMaxVisible")).toBe(10);
 	});
 
 	it("should read from config.yml", async () => {
-		await Bun.write(path.join(agentDir, "config.yml"), YAML.stringify({ autocompleteMaxVisible: 15 }, null, 2));
+		await Bun.write(
+			path.join(agentDir, "config.yml"),
+			YAML.stringify({ "interaction.autocompleteMaxVisible": 15 }, null, 2),
+		);
 		const settings = await Settings.init({ cwd: projectDir, agentDir });
-		expect(settings.get("autocompleteMaxVisible")).toBe(15);
+		expect(settings.get("interaction.autocompleteMaxVisible")).toBe(15);
 	});
 
 	it("should coerce submenu string values for live editor updates", () => {
@@ -61,13 +64,13 @@ describe("autocompleteMaxVisible setting", () => {
 			editor: { setAutocompleteMaxVisible },
 		} as unknown as ConstructorParameters<typeof SelectorController>[0]);
 
-		controller.handleSettingChange("autocompleteMaxVisible", "10");
+		controller.handleSettingChange("interaction.autocompleteMaxVisible", "10");
 
 		expect(setAutocompleteMaxVisible).toHaveBeenCalledWith(10);
 	});
 
 	it("should work with isolated instances", () => {
-		const settings = Settings.isolated({ autocompleteMaxVisible: 12 });
-		expect(settings.get("autocompleteMaxVisible")).toBe(12);
+		const settings = Settings.isolated({ "interaction.autocompleteMaxVisible": 12 });
+		expect(settings.get("interaction.autocompleteMaxVisible")).toBe(12);
 	});
 });

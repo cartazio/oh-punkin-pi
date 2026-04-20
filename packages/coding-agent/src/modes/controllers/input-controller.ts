@@ -67,7 +67,7 @@ export class InputController {
 				void this.ctx.session.abort();
 			} else if (!this.ctx.editor.getText().trim()) {
 				// Double-interrupt with empty editor triggers /tree, /branch, or nothing based on setting
-				const action = settings.get("doubleEscapeAction");
+				const action = settings.get("interaction.doubleEscapeAction");
 				if (action !== "none") {
 					const now = Date.now();
 					if (now - this.ctx.lastEscapeTime < 500) {
@@ -609,7 +609,7 @@ export class InputController {
 
 	async cycleRoleModel(options?: { temporary?: boolean }): Promise<void> {
 		try {
-			const cycleOrder = settings.get("cycleOrder");
+			const cycleOrder = settings.get("model.cycleOrder");
 			const result = await this.ctx.session.cycleRoleModels(cycleOrder, options);
 			if (!result) {
 				this.ctx.showStatus("Only one role model available");
@@ -661,7 +661,7 @@ export class InputController {
 
 	toggleThinkingBlockVisibility(): void {
 		this.ctx.hideThinkingBlock = !this.ctx.hideThinkingBlock;
-		settings.set("hideThinkingBlock", this.ctx.hideThinkingBlock);
+		settings.set("model.hideThinkingBlock", this.ctx.hideThinkingBlock);
 
 		// Rebuild chat from session messages
 		this.ctx.chatContainer.clear();

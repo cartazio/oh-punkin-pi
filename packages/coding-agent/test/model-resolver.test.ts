@@ -375,7 +375,7 @@ describe("resolveModelRoleValue", () => {
 describe("resolveAgentModelPatterns", () => {
 	test("falls back to the active session model when pi/task is unset", () => {
 		const settings = Settings.isolated({
-			modelRoles: { default: "anthropic/claude-sonnet-4-5" },
+			"model.roles": { default: "anthropic/claude-sonnet-4-5" },
 		});
 
 		const result = resolveAgentModelPatterns({
@@ -389,7 +389,7 @@ describe("resolveAgentModelPatterns", () => {
 
 	test("uses the configured task role before falling back to the session model", () => {
 		const settings = Settings.isolated({
-			modelRoles: {
+			"model.roles": {
 				default: "openai/gpt-4o",
 				task: "anthropic/claude-sonnet-4-5:high",
 			},

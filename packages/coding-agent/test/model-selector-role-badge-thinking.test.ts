@@ -54,7 +54,7 @@ describe("ModelSelector role badge thinking display", () => {
 		if (!model) throw new Error("Expected bundled model anthropic/claude-sonnet-4-5");
 
 		const settings = Settings.isolated({
-			modelRoles: {
+			"model.roles": {
 				default: `${model.provider}/${model.id}`,
 				smol: `${model.provider}/${model.id}:minimal`,
 				slow: `${model.provider}/${model.id}`,
@@ -89,13 +89,13 @@ describe("ModelSelector role badge thinking display", () => {
 		if (!model) throw new Error("Expected bundled model anthropic/claude-sonnet-4-5");
 
 		const settings = Settings.isolated({
-			cycleOrder: ["smol", "custom-fast", "default"],
-			modelRoles: {
+			"model.cycleOrder": ["smol", "custom-fast", "default"],
+			"model.roles": {
 				default: `${model.provider}/${model.id}`,
 				"custom-fast": `${model.provider}/${model.id}:low`,
 				smol: `${model.provider}/${model.id}`,
 			},
-			modelTags: {
+			"model.tags": {
 				smol: { name: "Quick", color: "error" },
 			},
 		});

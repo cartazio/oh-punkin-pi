@@ -3640,7 +3640,7 @@ export class AgentSession {
 		if (isChanging) {
 			this.sessionManager.appendThinkingLevelChange(effectiveLevel);
 			if (persist && effectiveLevel !== undefined && effectiveLevel !== ThinkingLevel.Off) {
-				this.settings.set("defaultThinkingLevel", effectiveLevel);
+				this.settings.set("model.defaultThinkingLevel", effectiveLevel);
 			}
 		}
 	}
@@ -3701,7 +3701,7 @@ export class AgentSession {
 	 */
 	setSteeringMode(mode: "all" | "one-at-a-time"): void {
 		this.agent.setSteeringMode(mode);
-		this.settings.set("steeringMode", mode);
+		this.settings.set("interaction.steeringMode", mode);
 	}
 
 	/**
@@ -3710,7 +3710,7 @@ export class AgentSession {
 	 */
 	setFollowUpMode(mode: "all" | "one-at-a-time"): void {
 		this.agent.setFollowUpMode(mode);
-		this.settings.set("followUpMode", mode);
+		this.settings.set("interaction.followUpMode", mode);
 	}
 
 	/**
@@ -3719,7 +3719,7 @@ export class AgentSession {
 	 */
 	setInterruptMode(mode: "immediate" | "wait"): void {
 		this.agent.setInterruptMode(mode);
-		this.settings.set("interruptMode", mode);
+		this.settings.set("interaction.interruptMode", mode);
 	}
 
 	// =========================================================================
@@ -4300,7 +4300,7 @@ export class AgentSession {
 	 * Injected once per user turn. Does NOT force an agent continue.
 	 */
 	async #checkTodoCompletion(): Promise<void> {
-		const remindersEnabled = this.settings.get("todo.reminders");
+		const remindersEnabled = this.settings.get("todo.reminders.enabled");
 		const todosEnabled = this.settings.get("todo.enabled");
 		if (!remindersEnabled || !todosEnabled) {
 			this.#todoReminderCount = 0;
@@ -5861,8 +5861,8 @@ export class AgentSession {
 			const hasServiceTierEntry = this.sessionManager
 				.getBranch()
 				.some(entry => entry.type === "service_tier_change");
-			const defaultThinkingLevel = this.settings.get("defaultThinkingLevel");
-			const configuredServiceTier = this.settings.get("serviceTier");
+			const defaultThinkingLevel = this.settings.get("model.defaultThinkingLevel");
+			const configuredServiceTier = this.settings.get("sampling.serviceTier");
 			const nextThinkingLevel = resolveThinkingLevelForModel(
 				this.model,
 				hasThinkingEntry ? (sessionContext.thinkingLevel as ThinkingLevel | undefined) : defaultThinkingLevel,

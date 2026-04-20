@@ -109,7 +109,7 @@ async function loadImpl<T>(
 	const contributingProviders: string[] = [];
 	const disabledExtensionIds = options.includeDisabled
 		? new Set<string>()
-		: new Set<string>(options.disabledExtensions ?? settings?.get("disabledExtensions") ?? []);
+		: new Set<string>(options.disabledExtensions ?? settings?.get("discovery.disabledExtensions") ?? []);
 
 	const results = await Promise.all(
 		providers.map(async provider => {
@@ -249,7 +249,7 @@ export async function loadCapability<T>(capabilityId: string, options: LoadOptio
 export function initializeWithSettings(activeSettings: Settings): void {
 	settings = activeSettings;
 	// Load disabled providers from settings
-	const disabled = settings.get("disabledProviders");
+	const disabled = settings.get("discovery.disabledProviders");
 	disabledProviders.clear();
 	for (const id of disabled) {
 		disabledProviders.add(id);
@@ -261,7 +261,7 @@ export function initializeWithSettings(activeSettings: Settings): void {
  */
 function persistDisabledProviders(): void {
 	if (settings) {
-		settings.set("disabledProviders", Array.from(disabledProviders));
+		settings.set("discovery.disabledProviders", Array.from(disabledProviders));
 	}
 }
 

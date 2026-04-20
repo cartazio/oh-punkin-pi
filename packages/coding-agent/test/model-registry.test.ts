@@ -1059,7 +1059,7 @@ describe("ModelRegistry", () => {
 			await Settings.init({
 				inMemory: true,
 				overrides: {
-					disabledProviders: ["github-copilot", "ollama"],
+					"discovery.disabledProviders": ["github-copilot", "ollama"],
 				},
 			});
 

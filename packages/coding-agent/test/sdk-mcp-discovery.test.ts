@@ -174,8 +174,8 @@ describe("createAgentSession MCP discovery prompt gating", () => {
 			sessionManager: firstManager,
 			settings: Settings.isolated({
 				"mcp.discoveryMode": true,
-				defaultThinkingLevel: "high",
-				serviceTier: "priority",
+				"model.defaultThinkingLevel": "high",
+				"sampling.serviceTier": "priority",
 			}),
 			model: createReasoningModel(),
 			disableExtensionDiscovery: true,
@@ -210,8 +210,8 @@ describe("createAgentSession MCP discovery prompt gating", () => {
 			sessionManager: resumedManager,
 			settings: Settings.isolated({
 				"mcp.discoveryMode": true,
-				defaultThinkingLevel: "high",
-				serviceTier: "none",
+				"model.defaultThinkingLevel": "high",
+				"sampling.serviceTier": "none",
 			}),
 			model: createReasoningModel(),
 			disableExtensionDiscovery: true,
@@ -263,8 +263,8 @@ describe("createAgentSession MCP discovery prompt gating", () => {
 			settings: Settings.isolated({
 				"mcp.discoveryMode": true,
 				"mcp.discoveryDefaultServers": ["github"],
-				defaultThinkingLevel: "high",
-				serviceTier: "priority",
+				"model.defaultThinkingLevel": "high",
+				"sampling.serviceTier": "priority",
 			}),
 			model: createReasoningModel(),
 			disableExtensionDiscovery: true,

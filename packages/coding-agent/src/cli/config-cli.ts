@@ -20,7 +20,7 @@ import {
 import { SETTINGS_SCHEMA } from "../config/settings-schema";
 import { theme } from "../modes/theme/theme";
 import { initXdg } from "./commands/init-xdg";
-import { defaultEmitOptions, type EmitLayout, emitSettingsToml, type PrefixOrder } from "./emit-settings-toml";
+import { defaultEmitOptions, type EmitLayout, emitSettingsToml } from "./emit-settings-toml";
 
 // =============================================================================
 // Types
@@ -35,10 +35,7 @@ export interface ConfigCommandArgs {
 	flags: {
 		json?: boolean;
 		layout?: EmitLayout;
-		prefixOrder?: PrefixOrder;
 		includeComments?: boolean;
-		includePriorityHeader?: boolean;
-		groupBulk?: boolean;
 		templateDate?: string;
 		outputTemplate?: string;
 		outputActive?: string;
@@ -118,18 +115,8 @@ export function parseConfigArgs(args: string[]): ConfigCommandArgs | undefined {
 			result.flags.includeComments = true;
 		} else if (arg === "--no-include-comments") {
 			result.flags.includeComments = false;
-		} else if (arg === "--include-priority-header") {
-			result.flags.includePriorityHeader = true;
-		} else if (arg === "--no-include-priority-header") {
-			result.flags.includePriorityHeader = false;
-		} else if (arg === "--group-bulk") {
-			result.flags.groupBulk = true;
-		} else if (arg === "--no-group-bulk") {
-			result.flags.groupBulk = false;
 		} else if (arg === "--layout") {
 			result.flags.layout = args[++i] as EmitLayout | undefined;
-		} else if (arg === "--prefix-order") {
-			result.flags.prefixOrder = args[++i] as PrefixOrder | undefined;
 		} else if (arg === "--template-date") {
 			result.flags.templateDate = args[++i];
 		} else if (arg === "--output-template") {
@@ -421,15 +408,16 @@ function handlePath(): void {
 async function handleEmitToml(flags: ConfigCommandArgs["flags"]): Promise<void> {
 	const options = defaultEmitOptions(flags.templateDate ?? new Date().toISOString().slice(0, 10));
 	options.layout = flags.layout ?? options.layout;
-	options.prefixOrder = flags.prefixOrder ?? options.prefixOrder;
 	options.includeComments = flags.includeComments ?? options.includeComments;
-	options.includePriorityHeader = flags.includePriorityHeader ?? options.includePriorityHeader;
-	options.groupBulk = flags.groupBulk ?? options.groupBulk;
 	options.outputTemplate = flags.outputTemplate ?? options.outputTemplate;
-	options.outputActive = flags.outputActive ?? options.outputActive;
+	// outputActive is a deprecated/ignored field; --output-active flag is silently accepted for back-compat but the live file is never written.
 	await emitSettingsToml(options);
 	console.log(chalk.green(`${theme.status.success} Wrote ${options.outputTemplate}`));
-	console.log(chalk.green(`${theme.status.success} Wrote ${options.outputActive}`));
+	console.log(
+		chalk.dim(
+			"(live ~/.agent/ohp-settings.toml is user-sovereign and not touched; seed once via 'config init-xdg'.)",
+		),
+	);
 }
 
 // =============================================================================
@@ -458,10 +446,7 @@ ${chalk.bold("Where real settings live:")}
 
 ${chalk.bold("emit-toml options:")}
   --layout grouped|flat
-  --prefix-order alpha|priority
   --include-comments / --no-include-comments
-  --include-priority-header / --no-include-priority-header
-  --group-bulk / --no-group-bulk
   --template-date YYYY-MM-DD
   --output-template <path>
   --output-active <path>
@@ -476,7 +461,7 @@ ${chalk.bold("Examples:")}
   ${APP_NAME} config list --json
   ${APP_NAME} config init-xdg
   ${APP_NAME} config emit-toml
-  ${APP_NAME} config emit-toml --prefix-order priority --output-template ~/.agent/ohp-settings-template-2026-04-13.toml --output-active ~/.agent/ohp-settings.toml
+  ${APP_NAME} config emit-toml --output-template ~/.agent/ohp-settings-template-2026-04-13.toml
 
 ${chalk.bold("Boolean Values:")}
   true, false, yes, no, on, off, 1, 0

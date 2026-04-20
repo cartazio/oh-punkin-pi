@@ -12,7 +12,7 @@ export interface FileDisplayModeSession {
 	/** Whether the edit tool is available. Hashlines are suppressed without it. */
 	hasEditTool?: boolean;
 	settings: {
-		get(key: "readLineNumbers" | "readHashLines" | "edit.mode"): unknown;
+		get(key: "read.lineNumbers" | "read.hashLines" | "edit.mode"): unknown;
 	};
 }
 
@@ -26,11 +26,11 @@ export function resolveFileDisplayMode(session: FileDisplayModeSession): FileDis
 	const hasEditTool = session.hasEditTool ?? true;
 	const hashLines =
 		hasEditTool &&
-		(settings.get("readHashLines") === true ||
+		(settings.get("read.hashLines") === true ||
 			settings.get("edit.mode") === "hashline" ||
 			Bun.env.PI_EDIT_VARIANT === "hashline");
 	return {
 		hashLines,
-		lineNumbers: hashLines || settings.get("readLineNumbers") === true,
+		lineNumbers: hashLines || settings.get("read.lineNumbers") === true,
 	};
 }

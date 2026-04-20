@@ -25,7 +25,7 @@ describe("disabledExtensions runtime filtering", () => {
 			inMemory: true,
 			cwd: tempDir,
 			overrides: {
-				disabledExtensions: ["context-file:project:AGENTS.md"],
+				"discovery.disabledExtensions": ["context-file:project:AGENTS.md"],
 			},
 		});
 		initializeWithSettings(settings);
