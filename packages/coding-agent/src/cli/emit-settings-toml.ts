@@ -72,7 +72,12 @@ function formatInlineRecord(record: Record<string, unknown>): string {
 }
 
 function formatInlineAoT(value: Array<Record<string, unknown>>): string {
-	return `[${value.map(formatInlineRecord).join(", ")}]`;
+	if (value.length === 0) return "[]";
+	if (value.length === 1) return `[${formatInlineRecord(value[0])}]`;
+	// Multi-line inline AoT: one record per line, trailing comma on each entry.
+	// Preserves the no-`[[…]]`-scope-leak guarantee while staying diff-readable.
+	const inner = value.map(r => `\t${formatInlineRecord(r)},`).join("\n");
+	return `[\n${inner}\n]`;
 }
 
 function formatValue(value: unknown): string {
