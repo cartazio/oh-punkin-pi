@@ -495,7 +495,7 @@ async function buildSessionOptions(
 
 	// Scoped models for Ctrl+P cycling - fill in default thinking levels when not explicit
 	if (scopedModels.length > 0) {
-		const defaultThinkingLevel = settings.get("defaultThinkingLevel");
+		const defaultThinkingLevel = settings.get("model.defaultThinkingLevel");
 		options.scopedModels = scopedModels.map(scopedModel => ({
 			model: scopedModel.model,
 			thinkingLevel: scopedModel.explicitThinkingLevel
@@ -657,15 +657,15 @@ export async function runRootCommand(parsed: Args, rawArgs: string[]): Promise<v
 	await logger.timeAsync("initTheme:final", () =>
 		initTheme(
 			isInteractive,
-			settings.get("symbolPreset"),
-			settings.get("colorBlindMode"),
+			settings.get("appearance.symbolPreset"),
+			settings.get("appearance.colorBlindMode"),
 			settings.get("theme.dark"),
 			settings.get("theme.light"),
 		),
 	);
 
 	let scopedModels: ScopedModel[] = [];
-	const modelPatterns = parsedArgs.models ?? settings.get("enabledModels");
+	const modelPatterns = parsedArgs.models ?? settings.get("discovery.enabledModels");
 	const modelMatchPreferences = {
 		usageOrder: settings.getStorage()?.getModelUsageOrder(),
 	};

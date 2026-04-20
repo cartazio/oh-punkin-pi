@@ -185,7 +185,7 @@ export const DEFAULT_BASH_INTERCEPTOR_RULES: BashInterceptorRule[] = [
 		message: "Use the `edit` tool instead of awk -i inplace. It provides diff preview and fuzzy matching.",
 	},
 	{
-		pattern: "^\\s*(echo|printf|cat\\s*<<)\\s+.*[^|]>\\s*\\S",
+		pattern: "^\\s*(echo|printf|cat\\s*<<)\\s+.*(?<![0-9|&])>\\s*\\S",
 		tool: "write",
 		message: "Use the `write` tool instead of echo/cat redirection. It handles encoding and provides confirmation.",
 	},
@@ -195,11 +195,11 @@ export const SETTINGS_SCHEMA = {
 	// ────────────────────────────────────────────────────────────────────────
 	// General settings (no UI)
 	// ────────────────────────────────────────────────────────────────────────
-	lastChangelogVersion: { type: "string", default: undefined },
+	"changelog.lastVersion": { type: "string", default: undefined },
 
-	shellPath: { type: "string", default: undefined },
+	"shell.path": { type: "string", default: undefined },
 
-	extensions: { type: "array", default: EMPTY_STRING_ARRAY },
+	"discovery.extensions": { type: "array", default: EMPTY_STRING_ARRAY },
 
 	"marketplace.autoUpdate": {
 		type: "enum",
@@ -213,17 +213,17 @@ export const SETTINGS_SCHEMA = {
 		},
 	},
 
-	enabledModels: { type: "array", default: EMPTY_STRING_ARRAY },
+	"discovery.enabledModels": { type: "array", default: EMPTY_STRING_ARRAY },
 
-	disabledProviders: { type: "array", default: EMPTY_STRING_ARRAY },
+	"discovery.disabledProviders": { type: "array", default: EMPTY_STRING_ARRAY },
 
-	disabledExtensions: { type: "array", default: EMPTY_STRING_ARRAY },
+	"discovery.disabledExtensions": { type: "array", default: EMPTY_STRING_ARRAY },
 
-	modelRoles: { type: "record", default: EMPTY_STRING_RECORD },
+	"model.roles": { type: "record", default: EMPTY_STRING_RECORD },
 
-	modelTags: { type: "record", default: EMPTY_MODEL_TAGS_RECORD },
+	"model.tags": { type: "record", default: EMPTY_MODEL_TAGS_RECORD },
 
-	cycleOrder: { type: "array", default: DEFAULT_CYCLE_ORDER },
+	"model.cycleOrder": { type: "array", default: DEFAULT_CYCLE_ORDER },
 
 	// ────────────────────────────────────────────────────────────────────────
 	// Appearance
@@ -252,14 +252,14 @@ export const SETTINGS_SCHEMA = {
 		},
 	},
 
-	symbolPreset: {
+	"appearance.symbolPreset": {
 		type: "enum",
 		values: ["unicode", "nerd", "ascii"] as const,
 		default: "unicode",
 		ui: { tab: "appearance", label: "Symbol Preset", description: "Icon/symbol style", submenu: true },
 	},
 
-	colorBlindMode: {
+	"appearance.colorBlindMode": {
 		type: "boolean",
 		default: false,
 		ui: {
@@ -403,13 +403,13 @@ export const SETTINGS_SCHEMA = {
 		},
 	},
 
-	showHardwareCursor: {
+	"appearance.showHardwareCursor": {
 		type: "boolean",
 		default: true, // will be computed based on platform if undefined
 		ui: { tab: "appearance", label: "Show Hardware Cursor", description: "Show terminal cursor for IME support" },
 	},
 
-	clearOnShrink: {
+	"appearance.clearOnShrink": {
 		type: "boolean",
 		default: false,
 		ui: {
@@ -424,7 +424,7 @@ export const SETTINGS_SCHEMA = {
 	// ────────────────────────────────────────────────────────────────────────
 
 	// Reasoning and prompts
-	defaultThinkingLevel: {
+	"model.defaultThinkingLevel": {
 		type: "enum",
 		values: THINKING_EFFORTS,
 		default: "high",
@@ -436,13 +436,13 @@ export const SETTINGS_SCHEMA = {
 		},
 	},
 
-	hideThinkingBlock: {
+	"model.hideThinkingBlock": {
 		type: "boolean",
 		default: false,
 		ui: { tab: "model", label: "Hide Thinking Blocks", description: "Hide thinking blocks in assistant responses" },
 	},
 
-	repeatToolDescriptions: {
+	"model.repeatToolDescriptions": {
 		type: "boolean",
 		default: false,
 		ui: {
@@ -453,7 +453,7 @@ export const SETTINGS_SCHEMA = {
 	},
 
 	// Sampling
-	temperature: {
+	"sampling.temperature": {
 		type: "number",
 		default: -1,
 		ui: {
@@ -464,7 +464,7 @@ export const SETTINGS_SCHEMA = {
 		},
 	},
 
-	topP: {
+	"sampling.topP": {
 		type: "number",
 		default: -1,
 		ui: {
@@ -475,7 +475,7 @@ export const SETTINGS_SCHEMA = {
 		},
 	},
 
-	topK: {
+	"sampling.topK": {
 		type: "number",
 		default: -1,
 		ui: {
@@ -486,7 +486,7 @@ export const SETTINGS_SCHEMA = {
 		},
 	},
 
-	minP: {
+	"sampling.minP": {
 		type: "number",
 		default: -1,
 		ui: {
@@ -497,7 +497,7 @@ export const SETTINGS_SCHEMA = {
 		},
 	},
 
-	presencePenalty: {
+	"sampling.presencePenalty": {
 		type: "number",
 		default: -1,
 		ui: {
@@ -508,7 +508,7 @@ export const SETTINGS_SCHEMA = {
 		},
 	},
 
-	repetitionPenalty: {
+	"sampling.repetitionPenalty": {
 		type: "number",
 		default: -1,
 		ui: {
@@ -519,7 +519,7 @@ export const SETTINGS_SCHEMA = {
 		},
 	},
 
-	serviceTier: {
+	"sampling.serviceTier": {
 		type: "enum",
 		values: ["none", "auto", "default", "flex", "scale", "priority"] as const,
 		default: "none",
@@ -564,7 +564,7 @@ export const SETTINGS_SCHEMA = {
 	// ────────────────────────────────────────────────────────────────────────
 
 	// Conversation flow
-	steeringMode: {
+	"interaction.steeringMode": {
 		type: "enum",
 		values: ["all", "one-at-a-time"] as const,
 		default: "one-at-a-time",
@@ -575,7 +575,7 @@ export const SETTINGS_SCHEMA = {
 		},
 	},
 
-	followUpMode: {
+	"interaction.followUpMode": {
 		type: "enum",
 		values: ["all", "one-at-a-time"] as const,
 		default: "one-at-a-time",
@@ -586,7 +586,7 @@ export const SETTINGS_SCHEMA = {
 		},
 	},
 
-	interruptMode: {
+	"interaction.interruptMode": {
 		type: "enum",
 		values: ["immediate", "wait"] as const,
 		default: "immediate",
@@ -598,7 +598,7 @@ export const SETTINGS_SCHEMA = {
 	},
 
 	// Input and startup
-	doubleEscapeAction: {
+	"interaction.doubleEscapeAction": {
 		type: "enum",
 		values: ["branch", "tree", "none"] as const,
 		default: "tree",
@@ -609,7 +609,7 @@ export const SETTINGS_SCHEMA = {
 		},
 	},
 
-	treeFilterMode: {
+	"interaction.treeFilterMode": {
 		type: "enum",
 		values: ["default", "no-tools", "user-only", "labeled-only", "all"] as const,
 		default: "default",
@@ -620,7 +620,7 @@ export const SETTINGS_SCHEMA = {
 		},
 	},
 
-	autocompleteMaxVisible: {
+	"interaction.autocompleteMaxVisible": {
 		type: "number",
 		default: 5,
 		ui: {
@@ -651,7 +651,7 @@ export const SETTINGS_SCHEMA = {
 		},
 	},
 
-	collapseChangelog: {
+	"interaction.collapseChangelog": {
 		type: "boolean",
 		default: false,
 		ui: { tab: "interaction", label: "Collapse Changelog", description: "Show condensed changelog after updates" },
@@ -971,7 +971,7 @@ export const SETTINGS_SCHEMA = {
 		},
 	},
 
-	readLineNumbers: {
+	"read.lineNumbers": {
 		type: "boolean",
 		default: false,
 		ui: {
@@ -981,7 +981,7 @@ export const SETTINGS_SCHEMA = {
 		},
 	},
 
-	readHashLines: {
+	"read.hashLines": {
 		type: "boolean",
 		default: true,
 		ui: {
@@ -1087,7 +1087,7 @@ export const SETTINGS_SCHEMA = {
 		ui: { tab: "tools", label: "Todos", description: "Enable the todo_write tool for task tracking" },
 	},
 
-	"todo.reminders": {
+	"todo.reminders.enabled": {
 		type: "boolean",
 		default: true,
 		ui: { tab: "tools", label: "Todo Reminders", description: "Remind agent to complete todos before stopping" },
@@ -1701,7 +1701,7 @@ export type StatusLinePreset = SettingValue<"statusLine.preset">;
 export type StatusLineSeparatorStyle = SettingValue<"statusLine.separator">;
 
 /** Tree selector filter mode - derived from schema */
-export type TreeFilterMode = SettingValue<"treeFilterMode">;
+export type TreeFilterMode = SettingValue<"interaction.treeFilterMode">;
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Typed Group Definitions
@@ -1842,9 +1842,9 @@ export interface GroupTypeMap {
 	statusLine: StatusLineSettings;
 	thinkingBudgets: ThinkingBudgetsSettings;
 	stt: SttSettings;
-	modelRoles: Record<string, string>;
-	modelTags: ModelTagsSettings;
-	cycleOrder: string[];
+	"model.roles": Record<string, string>;
+	"model.tags": ModelTagsSettings;
+	"model.cycleOrder": string[];
 }
 
 export type GroupPrefix = keyof GroupTypeMap;

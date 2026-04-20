@@ -366,7 +366,7 @@ export class SettingsSelectorComponent extends Container {
 		let options = def.options;
 
 		// Special case: inject runtime options for thinking level
-		if (def.path === "defaultThinkingLevel") {
+		if (def.path === "model.defaultThinkingLevel") {
 			options = this.context.availableThinkingLevels.map(level => {
 				const baseOpt = options.find(o => o.value === level);
 				return baseOpt || { value: level, label: level };

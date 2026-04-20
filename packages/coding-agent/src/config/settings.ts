@@ -41,6 +41,39 @@ import {
 	type SettingValue,
 } from "./settings-schema";
 
+// ═══════════════════════════════════════════════════════════════════════════
+// Schema invariant lint (module-load assertion)
+// ═══════════════════════════════════════════════════════════════════════════
+// Every schema key MUST be namespaced (contain at least one '.'). Bare
+// top-level keys break uniform 'group by prefix' emission and force the
+// emitter to use a synthetic 'default.*' bucket. Prevent regressions.
+{
+	const _bare = Object.keys(SETTINGS_SCHEMA).filter(k => !k.includes("."));
+	if (_bare.length > 0) {
+		throw new Error(
+			`SETTINGS_SCHEMA contains ${_bare.length} bare top-level key(s) — every key must be namespaced (e.g. 'foo.bar'). Offenders: ${_bare.join(", ")}`,
+		);
+	}
+}
+
+// Path P must not be a strict prefix of any other path Q (joined by '.'),
+// or P would be both a leaf scalar AND an interior node — unrepresentable in TOML
+// ("Cannot overwrite a value") and ill-formed conceptually.
+{
+	const _paths = Object.keys(SETTINGS_SCHEMA);
+	const _conflicts: Array<[string, string]> = [];
+	for (const p of _paths) {
+		for (const q of _paths) {
+			if (q.startsWith(`${p}.`)) _conflicts.push([p, q]);
+		}
+	}
+	if (_conflicts.length > 0) {
+		throw new Error(
+			`SETTINGS_SCHEMA leaf-vs-branch conflicts: ${_conflicts.map(([p, q]) => `'${p}' is leaf AND '${q}' implies '${p}' is interior`).join("; ")}`,
+		);
+	}
+}
+
 // Re-export types that callers need
 export type * from "./settings-schema";
 export * from "./settings-schema";
@@ -140,12 +173,42 @@ function rawDeepMerge(base: RawSettings, overrides: RawSettings): RawSettings {
 
 export function normalizeDottedKeys(raw: RawSettings): RawSettings {
 	const result: RawSettings = {};
+	// Track which paths arrived as flat-quoted dotted keys vs nested-table keys, to fail-fast on collision.
+	const flatQuotedPaths = new Set<string>();
+	const nestedPaths = new Set<string>();
 	for (const [key, value] of Object.entries(raw)) {
 		const normalized =
 			value !== null && typeof value === "object" && !Array.isArray(value)
 				? normalizeDottedKeys(value as RawSettings)
 				: value;
-		const segments = key.includes(".") ? parsePath(key) : [key];
+		const keyHasDot = key.includes(".");
+		const segments = keyHasDot ? parsePath(key) : [key];
+		const joinedPath = segments.join(".");
+		if (keyHasDot) {
+			if (nestedPaths.has(joinedPath)) {
+				throw new Error(
+					`Settings collision: path "${joinedPath}" defined as both nested table (e.g. [${segments[0]}] / ${segments.slice(1).join(".")}) and flat-quoted key ("${joinedPath}"). Pick one form and remove the other.`,
+				);
+			}
+			flatQuotedPaths.add(joinedPath);
+		} else if (normalized !== null && typeof normalized === "object" && !Array.isArray(normalized)) {
+			// Track every nested leaf path under this key for collision detection
+			const walk = (obj: RawSettings, prefix: string[]): void => {
+				for (const [k, v] of Object.entries(obj)) {
+					const path = [...prefix, k].join(".");
+					if (flatQuotedPaths.has(path)) {
+						throw new Error(
+							`Settings collision: path "${path}" defined as both nested table and flat-quoted key ("${path}"). Pick one form and remove the other.`,
+						);
+					}
+					nestedPaths.add(path);
+					if (v !== null && typeof v === "object" && !Array.isArray(v)) {
+						walk(v as RawSettings, [...prefix, k]);
+					}
+				}
+			};
+			walk(normalized as RawSettings, [key]);
+		}
 		const existing = getByPath(result, segments);
 		if (
 			existing !== null &&
@@ -167,7 +230,7 @@ export function normalizeDottedKeys(raw: RawSettings): RawSettings {
  * Lift the emitter's synthetic `default.*` bucket to the root.
  * emit-settings-toml.ts wraps bare top-level keys (modelRoles, defaultThinkingLevel,
  * hideThinkingBlock, etc.) under a `default` prefix for presentation. This undoes
- * the wrap so `settings.get("modelRoles")` resolves via the normal top-level path.
+ * the wrap so `settings.get("model.roles")` resolves via the normal top-level path.
  */
 export function liftSyntheticDefault(raw: RawSettings): RawSettings {
 	const bucket = raw.default;
@@ -390,7 +453,7 @@ export class Settings {
 	 * Get shell configuration based on settings.
 	 */
 	getShellConfig() {
-		const shell = this.get("shellPath");
+		const shell = this.get("shell.path");
 		return procmgr.getShellConfig(shell);
 	}
 
@@ -438,15 +501,15 @@ export class Settings {
 	 * Set a model role (helper for modelRoles record).
 	 */
 	setModelRole(role: ModelRole | string, modelId: string): void {
-		const current = this.get("modelRoles");
-		this.set("modelRoles", { ...current, [role]: modelId });
+		const current = this.get("model.roles");
+		this.set("model.roles", { ...current, [role]: modelId });
 	}
 
 	/**
 	 * Get a model role (helper for modelRoles record).
 	 */
 	getModelRole(role: ModelRole | string): string | undefined {
-		const roles = this.get("modelRoles");
+		const roles = this.get("model.roles");
 		return roles[role];
 	}
 
@@ -454,27 +517,27 @@ export class Settings {
 	 * Get all model roles (helper for modelRoles record).
 	 */
 	getModelRoles(): ReadOnlyDict<string> {
-		return this.get("modelRoles");
+		return this.get("model.roles");
 	}
 
 	/*
 	 * Override model roles (helper for modelRoles record).
 	 */
 	overrideModelRoles(roles: ReadOnlyDict<string>): void {
-		const prev = this.get("modelRoles");
+		const prev = this.get("model.roles");
 		for (const [role, modelId] of Object.entries(roles)) {
 			if (modelId) {
 				prev[role] = modelId;
 			}
 		}
-		this.override("modelRoles", prev);
+		this.override("model.roles", prev);
 	}
 
 	/**
 	 * Set disabled providers (for compatibility with discovery system).
 	 */
 	setDisabledProviders(ids: string[]): void {
-		this.set("disabledProviders", ids);
+		this.set("discovery.disabledProviders", ids);
 	}
 
 	// ─────────────────────────────────────────────────────────────────────────
@@ -779,14 +842,14 @@ const SETTING_HOOKS: Partial<Record<SettingPath, SettingHook<any>>> = {
 			setAutoThemeMapping("light", value);
 		}
 	},
-	symbolPreset: value => {
+	"appearance.symbolPreset": value => {
 		if (typeof value === "string" && (value === "unicode" || value === "nerd" || value === "ascii")) {
 			setSymbolPreset(value).catch(err => {
 				logger.warn("Settings: symbolPreset hook failed", { preset: value, error: String(err) });
 			});
 		}
 	},
-	colorBlindMode: value => {
+	"appearance.colorBlindMode": value => {
 		if (typeof value === "boolean") {
 			setColorBlindMode(value).catch(err => {
 				logger.warn("Settings: colorBlindMode hook failed", { enabled: value, error: String(err) });

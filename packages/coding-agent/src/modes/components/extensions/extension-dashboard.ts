@@ -57,7 +57,7 @@ export class ExtensionDashboard extends Container {
 
 	async #init(): Promise<void> {
 		const sm = this.settings ?? (await Settings.init());
-		const disabledIds = sm ? ((sm.get("disabledExtensions") as string[]) ?? []) : [];
+		const disabledIds = sm ? ((sm.get("discovery.disabledExtensions") as string[]) ?? []) : [];
 		this.#state = await createInitialState(this.cwd, disabledIds);
 
 		// Calculate max visible items based on terminal height
@@ -167,17 +167,17 @@ export class ExtensionDashboard extends Container {
 		const sm = this.settings ?? Settings.instance;
 		if (!sm) return;
 
-		const disabled = ((sm.get("disabledExtensions") as string[]) ?? []).slice();
+		const disabled = ((sm.get("discovery.disabledExtensions") as string[]) ?? []).slice();
 		if (enabled) {
 			const index = disabled.indexOf(extensionId);
 			if (index !== -1) {
 				disabled.splice(index, 1);
-				sm.set("disabledExtensions", disabled);
+				sm.set("discovery.disabledExtensions", disabled);
 			}
 		} else {
 			if (!disabled.includes(extensionId)) {
 				disabled.push(extensionId);
-				sm.set("disabledExtensions", disabled);
+				sm.set("discovery.disabledExtensions", disabled);
 			}
 		}
 
@@ -189,7 +189,7 @@ export class ExtensionDashboard extends Container {
 		const currentTabId = this.#state.tabs[this.#state.activeTabIndex]?.id;
 
 		const sm = this.settings ?? Settings.instance;
-		const disabledIds = sm ? ((sm.get("disabledExtensions") as string[]) ?? []) : [];
+		const disabledIds = sm ? ((sm.get("discovery.disabledExtensions") as string[]) ?? []) : [];
 		this.#state = await refreshState(this.#state, this.cwd, disabledIds);
 
 		// Find the same tab in the new (re-sorted) list

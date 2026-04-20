@@ -25,7 +25,7 @@ describe("getRoleInfo", () => {
 
 	test("returns custom role info from modelTags", () => {
 		const settings = Settings.isolated({
-			modelTags: {
+			"model.tags": {
 				custom: { name: "My Custom Tag", color: "error" },
 				another: { name: "Another Tag" },
 			},
@@ -52,7 +52,7 @@ describe("getRoleInfo", () => {
 
 	test("configured metadata overrides built-in role info while keeping built-in defaults", () => {
 		const settings = Settings.isolated({
-			modelTags: {
+			"model.tags": {
 				smol: { name: "My Smol", color: "success" },
 			},
 		});

@@ -70,7 +70,7 @@ describe("component escape bindings", () => {
 		}
 
 		const settings = Settings.isolated({
-			modelRoles: {
+			"model.roles": {
 				default: `${model.provider}/${model.id}`,
 			},
 		});

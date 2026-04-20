@@ -330,7 +330,7 @@ const BUILTIN_SLASH_COMMAND_REGISTRY: ReadonlyArray<BuiltinSlashCommandSpec> = [
 		name: "branch",
 		description: "Create a new branch from a previous message",
 		handle: (_command, runtime) => {
-			if (settings.get("doubleEscapeAction") === "tree") {
+			if (settings.get("interaction.doubleEscapeAction") === "tree") {
 				runtime.ctx.showTreeSelector();
 			} else {
 				runtime.ctx.showUserMessageSelector();

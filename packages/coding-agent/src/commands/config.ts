@@ -30,16 +30,10 @@ export default class Config extends Command {
 	static flags = {
 		json: Flags.boolean({ description: "Output JSON" }),
 		layout: Flags.string({ description: "emit-toml layout", options: ["grouped", "flat"] }),
-		"prefix-order": Flags.string({ description: "emit-toml prefix order", options: ["alpha", "priority"] }),
 		"include-comments": Flags.boolean({ description: "Include comments in emitted TOML", allowNo: true }),
-		"include-priority-header": Flags.boolean({
-			description: "Include priority header in emitted TOML",
-			allowNo: true,
-		}),
-		"group-bulk": Flags.boolean({ description: "Split hot vs more fields in grouped mode", allowNo: true }),
 		"template-date": Flags.string({ description: "Template date suffix for emitted template artifact" }),
 		"output-template": Flags.string({ description: "Path for emitted template TOML" }),
-		"output-active": Flags.string({ description: "Path for emitted active TOML" }),
+		"output-active": Flags.string({ description: "DEPRECATED: ignored. Live ohp-settings.toml is user-sovereign." }),
 	};
 
 	async run(): Promise<void> {
@@ -54,10 +48,7 @@ export default class Config extends Command {
 			flags: {
 				json: flags.json,
 				layout: flags.layout as ConfigCommandArgs["flags"]["layout"],
-				prefixOrder: flags["prefix-order"] as ConfigCommandArgs["flags"]["prefixOrder"],
 				includeComments: flags["include-comments"],
-				includePriorityHeader: flags["include-priority-header"],
-				groupBulk: flags["group-bulk"],
 				templateDate: flags["template-date"],
 				outputTemplate: flags["output-template"],
 				outputActive: flags["output-active"],

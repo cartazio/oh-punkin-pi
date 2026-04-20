@@ -653,7 +653,7 @@ export async function createAgentSession(options: CreateAgentSessionOptions = {}
 		modelRegistry.refreshInBackground();
 	}
 	const skillsSettings = settings.getGroup("skills");
-	const disabledExtensionIds = settings.get("disabledExtensions") ?? [];
+	const disabledExtensionIds = settings.get("discovery.disabledExtensions") ?? [];
 	const discoveredSkillsPromise =
 		options.skills === undefined
 			? discoverSkills(cwd, agentDir, { ...skillsSettings, disabledExtensions: disabledExtensionIds })
@@ -747,7 +747,7 @@ export async function createAgentSession(options: CreateAgentSessionOptions = {}
 
 	// Fall back to settings default
 	if (thinkingLevel === undefined) {
-		thinkingLevel = settings.get("defaultThinkingLevel");
+		thinkingLevel = settings.get("model.defaultThinkingLevel");
 	}
 	if (model) {
 		thinkingLevel = resolveThinkingLevelForModel(model, thinkingLevel);
@@ -1049,8 +1049,11 @@ export async function createAgentSession(options: CreateAgentSessionOptions = {}
 		extensionsResult = options.preloadedExtensions;
 	} else {
 		// Merge CLI extension paths with settings extension paths
-		const configuredPaths = [...(options.additionalExtensionPaths ?? []), ...(settings.get("extensions") ?? [])];
-		const disabledExtensionIds = settings.get("disabledExtensions") ?? [];
+		const configuredPaths = [
+			...(options.additionalExtensionPaths ?? []),
+			...(settings.get("discovery.extensions") ?? []),
+		];
+		const disabledExtensionIds = settings.get("discovery.disabledExtensions") ?? [];
 		extensionsResult = await logger.timeAsync(
 			"discoverAndLoadExtensions",
 			discoverAndLoadExtensions,
@@ -1229,7 +1232,7 @@ export async function createAgentSession(options: CreateAgentSessionOptions = {}
 		emitEvent: event => cursorEventEmitter?.(event),
 	});
 
-	const repeatToolDescriptions = settings.get("repeatToolDescriptions");
+	const repeatToolDescriptions = settings.get("model.repeatToolDescriptions");
 	const eagerTasks = settings.get("task.eager");
 	const intentField = settings.get("tools.intentTracing") || $env.PI_INTENT_TRACING === "1" ? INTENT_FIELD : undefined;
 	const rebuildSystemPrompt = async (toolNames: string[], tools: Map<string, AgentTool>): Promise<string> => {
@@ -1450,7 +1453,7 @@ export async function createAgentSession(options: CreateAgentSessionOptions = {}
 	const openaiWebsocketSetting = settings.get("llmProviders.openaiWebsockets") ?? "auto";
 	const preferOpenAICodexWebsockets =
 		openaiWebsocketSetting === "on" ? true : openaiWebsocketSetting === "off" ? false : undefined;
-	const serviceTierSetting = settings.get("serviceTier");
+	const serviceTierSetting = settings.get("sampling.serviceTier");
 
 	const initialServiceTier = hasServiceTierEntry
 		? existingSession.serviceTier
@@ -1469,16 +1472,18 @@ export async function createAgentSession(options: CreateAgentSessionOptions = {}
 		onPayload,
 		sessionId: providerSessionId,
 		transformContext,
-		steeringMode: settings.get("steeringMode") ?? "one-at-a-time",
-		followUpMode: settings.get("followUpMode") ?? "one-at-a-time",
-		interruptMode: settings.get("interruptMode") ?? "immediate",
+		steeringMode: settings.get("interaction.steeringMode") ?? "one-at-a-time",
+		followUpMode: settings.get("interaction.followUpMode") ?? "one-at-a-time",
+		interruptMode: settings.get("interaction.interruptMode") ?? "immediate",
 		thinkingBudgets: settings.getGroup("thinkingBudgets"),
-		temperature: settings.get("temperature") >= 0 ? settings.get("temperature") : undefined,
-		topP: settings.get("topP") >= 0 ? settings.get("topP") : undefined,
-		topK: settings.get("topK") >= 0 ? settings.get("topK") : undefined,
-		minP: settings.get("minP") >= 0 ? settings.get("minP") : undefined,
-		presencePenalty: settings.get("presencePenalty") >= 0 ? settings.get("presencePenalty") : undefined,
-		repetitionPenalty: settings.get("repetitionPenalty") >= 0 ? settings.get("repetitionPenalty") : undefined,
+		temperature: settings.get("sampling.temperature") >= 0 ? settings.get("sampling.temperature") : undefined,
+		topP: settings.get("sampling.topP") >= 0 ? settings.get("sampling.topP") : undefined,
+		topK: settings.get("sampling.topK") >= 0 ? settings.get("sampling.topK") : undefined,
+		minP: settings.get("sampling.minP") >= 0 ? settings.get("sampling.minP") : undefined,
+		presencePenalty:
+			settings.get("sampling.presencePenalty") >= 0 ? settings.get("sampling.presencePenalty") : undefined,
+		repetitionPenalty:
+			settings.get("sampling.repetitionPenalty") >= 0 ? settings.get("sampling.repetitionPenalty") : undefined,
 		serviceTier: initialServiceTier,
 		kimiApiFormat: settings.get("llmProviders.kimiApiFormat") ?? "anthropic",
 		preferWebsockets: preferOpenAICodexWebsockets,

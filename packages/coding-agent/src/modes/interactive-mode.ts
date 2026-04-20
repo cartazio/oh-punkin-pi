@@ -201,8 +201,8 @@ export class InteractiveMode implements InteractiveModeContext {
 		this.lspServers = lspServers;
 		this.mcpManager = mcpManager;
 
-		this.ui = new TUI(new ProcessTerminal(), settings.get("showHardwareCursor"));
-		this.ui.setClearOnShrink(settings.get("clearOnShrink"));
+		this.ui = new TUI(new ProcessTerminal(), settings.get("appearance.showHardwareCursor"));
+		this.ui.setClearOnShrink(settings.get("appearance.clearOnShrink"));
 		setMermaidRenderCallback(() => this.ui.requestRender());
 		this.chatContainer = new Container();
 		this.pendingMessagesContainer = new Container();
@@ -211,7 +211,7 @@ export class InteractiveMode implements InteractiveModeContext {
 		this.btwContainer = new Container();
 		this.editor = new CustomEditor(getEditorTheme());
 		this.editor.setUseTerminalCursor(this.ui.getShowHardwareCursor());
-		this.editor.setAutocompleteMaxVisible(settings.get("autocompleteMaxVisible"));
+		this.editor.setAutocompleteMaxVisible(settings.get("interaction.autocompleteMaxVisible"));
 		this.editor.onAutocompleteCancel = () => {
 			this.ui.requestRender(true);
 		};
@@ -238,7 +238,7 @@ export class InteractiveMode implements InteractiveModeContext {
 		this.buildInfoLine = new BuildInfoLine();
 		this.statusLine.setAutoCompactEnabled(session.autoCompactionEnabled);
 
-		this.hideThinkingBlock = settings.get("hideThinkingBlock");
+		this.hideThinkingBlock = settings.get("model.hideThinkingBlock");
 
 		const builtinCommandNames = new Set(BUILTIN_SLASH_COMMANDS.map(c => c.name));
 		const hookCommands: SlashCommand[] = (
@@ -330,7 +330,7 @@ export class InteractiveMode implements InteractiveModeContext {
 			// Add changelog if provided
 			if (this.#changelogMarkdown) {
 				this.ui.addChild(new DynamicBorder());
-				if (settings.get("collapseChangelog")) {
+				if (settings.get("interaction.collapseChangelog")) {
 					const versionMatch = this.#changelogMarkdown.match(/##\s+\[?(\d+\.\d+\.\d+)\]?/);
 					const latestVersion = versionMatch ? versionMatch[1] : this.#version;
 					const condensedText = `Updated to v${latestVersion}. Use ${theme.bold("/changelog")} to view full changelog.`;

@@ -194,7 +194,7 @@ const OPTION_PROVIDERS: Partial<Record<SettingPath, OptionProvider>> = {
 		{ value: "10", label: "10 lines" },
 	],
 	// Autocomplete max visible
-	autocompleteMaxVisible: [
+	"interaction.autocompleteMaxVisible": [
 		{ value: "3", label: "3 items" },
 		{ value: "5", label: "5 items" },
 		{ value: "7", label: "7 items" },
@@ -327,9 +327,9 @@ const OPTION_PROVIDERS: Partial<Record<SettingPath, OptionProvider>> = {
 		{ value: "on", label: "On", description: "Force websockets for OpenAI Codex models" },
 	],
 	// Default thinking level
-	defaultThinkingLevel: [...THINKING_EFFORTS.map(getThinkingLevelMetadata)],
+	"model.defaultThinkingLevel": [...THINKING_EFFORTS.map(getThinkingLevelMetadata)],
 	// Temperature
-	temperature: [
+	"sampling.temperature": [
 		{ value: "-1", label: "Default", description: "Use provider default" },
 		{ value: "0", label: "0", description: "Deterministic" },
 		{ value: "0.2", label: "0.2", description: "Focused" },
@@ -337,7 +337,7 @@ const OPTION_PROVIDERS: Partial<Record<SettingPath, OptionProvider>> = {
 		{ value: "0.7", label: "0.7", description: "Creative" },
 		{ value: "1", label: "1", description: "Maximum variety" },
 	],
-	topP: [
+	"sampling.topP": [
 		{ value: "-1", label: "Default", description: "Use provider default" },
 		{ value: "0.1", label: "0.1", description: "Very focused" },
 		{ value: "0.3", label: "0.3", description: "Focused" },
@@ -345,27 +345,27 @@ const OPTION_PROVIDERS: Partial<Record<SettingPath, OptionProvider>> = {
 		{ value: "0.9", label: "0.9", description: "Broad" },
 		{ value: "1", label: "1", description: "No nucleus filtering" },
 	],
-	topK: [
+	"sampling.topK": [
 		{ value: "-1", label: "Default", description: "Use provider default" },
 		{ value: "1", label: "1", description: "Greedy top token" },
 		{ value: "20", label: "20", description: "Focused" },
 		{ value: "40", label: "40", description: "Balanced" },
 		{ value: "100", label: "100", description: "Broad" },
 	],
-	minP: [
+	"sampling.minP": [
 		{ value: "-1", label: "Default", description: "Use provider default" },
 		{ value: "0.01", label: "0.01", description: "Very permissive" },
 		{ value: "0.05", label: "0.05", description: "Balanced" },
 		{ value: "0.1", label: "0.1", description: "Strict" },
 	],
-	presencePenalty: [
+	"sampling.presencePenalty": [
 		{ value: "-1", label: "Default", description: "Use provider default" },
 		{ value: "0", label: "0", description: "No penalty" },
 		{ value: "0.5", label: "0.5", description: "Mild novelty" },
 		{ value: "1", label: "1", description: "Encourage novelty" },
 		{ value: "2", label: "2", description: "Strong novelty" },
 	],
-	repetitionPenalty: [
+	"sampling.repetitionPenalty": [
 		{ value: "-1", label: "Default", description: "Use provider default" },
 		{ value: "0.8", label: "0.8", description: "Allow repetition" },
 		{ value: "1", label: "1", description: "No penalty" },
@@ -373,7 +373,7 @@ const OPTION_PROVIDERS: Partial<Record<SettingPath, OptionProvider>> = {
 		{ value: "1.2", label: "1.2", description: "Balanced" },
 		{ value: "1.5", label: "1.5", description: "Strong penalty" },
 	],
-	serviceTier: [
+	"sampling.serviceTier": [
 		{ value: "none", label: "None", description: "Omit service_tier parameter" },
 		{ value: "auto", label: "Auto", description: "Use provider default tier selection" },
 		{ value: "default", label: "Default", description: "Standard priority processing" },
@@ -382,7 +382,7 @@ const OPTION_PROVIDERS: Partial<Record<SettingPath, OptionProvider>> = {
 		{ value: "priority", label: "Priority", description: "Use Priority processing" },
 	],
 	// Symbol preset
-	symbolPreset: [
+	"appearance.symbolPreset": [
 		{ value: "unicode", label: "Unicode", description: "Standard symbols (default)" },
 		{ value: "nerd", label: "Nerd Font", description: "Requires Nerd Font" },
 		{ value: "ascii", label: "ASCII", description: "Maximum compatibility" },

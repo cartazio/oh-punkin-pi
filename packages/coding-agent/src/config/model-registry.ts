@@ -78,9 +78,9 @@ export function getKnownRoleIds(settings: Settings): string[] {
 		roles.push(role);
 	};
 
-	for (const role of settings.get("cycleOrder")) addRole(role);
+	for (const role of settings.get("model.cycleOrder")) addRole(role);
 	for (const role of Object.keys(settings.getModelRoles())) addRole(role);
-	for (const role of Object.keys(settings.get("modelTags"))) addRole(role);
+	for (const role of Object.keys(settings.get("model.tags"))) addRole(role);
 
 	return roles;
 }
@@ -91,7 +91,7 @@ export function getKnownRoleIds(settings: Settings): string[] {
  */
 export function getRoleInfo(role: string, settings: Settings): RoleInfo {
 	const builtIn = role in MODEL_ROLES ? MODEL_ROLES[role as ModelRole] : undefined;
-	const configured = settings.get("modelTags")[role];
+	const configured = settings.get("model.tags")[role];
 
 	if (configured) {
 		return {
@@ -732,7 +732,7 @@ function normalizeSuppressedSelector(selector: string): string {
 
 function getDisabledProviderIdsFromSettings(): Set<string> {
 	try {
-		return new Set(settings.get("disabledProviders"));
+		return new Set(settings.get("discovery.disabledProviders"));
 	} catch {
 		return new Set();
 	}

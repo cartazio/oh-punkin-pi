@@ -55,7 +55,7 @@ describe("createAgentSession deferred model pattern resolution", () => {
 			agentDir: tempDir,
 			sessionManager: SessionManager.inMemory(),
 			disableExtensionDiscovery: true,
-			extensions: [providerExtension],
+			"discovery.extensions": [providerExtension],
 			skills: [],
 			contextFiles: [],
 			promptTemplates: [],
@@ -87,7 +87,7 @@ describe("createAgentSession deferred model pattern resolution", () => {
 	});
 
 	test("does not apply default role thinking override when modelPattern is explicit", async () => {
-		const settings = Settings.isolated({ defaultThinkingLevel: "off" });
+		const settings = Settings.isolated({ "model.defaultThinkingLevel": "off" });
 		settings.setModelRole("smol", "runtime-provider/runtime-reasoning-model");
 		settings.setModelRole("default", "pi/smol:high");
 

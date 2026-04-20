@@ -230,27 +230,27 @@ export class SelectorController {
 				this.ctx.session.setAutoCompactionEnabled(value as boolean);
 				this.ctx.statusLine.setAutoCompactEnabled(value as boolean);
 				break;
-			case "steeringMode":
+			case "interaction.steeringMode":
 				this.ctx.session.setSteeringMode(value as "all" | "one-at-a-time");
 				break;
-			case "followUpMode":
+			case "interaction.followUpMode":
 				this.ctx.session.setFollowUpMode(value as "all" | "one-at-a-time");
 				break;
-			case "interruptMode":
+			case "interaction.interruptMode":
 				this.ctx.session.setInterruptMode(value as "immediate" | "wait");
 				break;
 			case "thinkingLevel":
-			case "defaultThinkingLevel":
+			case "model.defaultThinkingLevel":
 				this.ctx.session.setThinkingLevel(value as ThinkingLevel, true);
 				this.ctx.statusLine.invalidate();
 				this.ctx.updateEditorBorderColor();
 				break;
 
-			case "clearOnShrink":
+			case "appearance.clearOnShrink":
 				this.ctx.ui.setClearOnShrink(value as boolean);
 				break;
 
-			case "autocompleteMaxVisible":
+			case "interaction.autocompleteMaxVisible":
 				this.ctx.editor.setAutocompleteMaxVisible(typeof value === "number" ? value : Number(value));
 				break;
 
@@ -283,7 +283,7 @@ export class SelectorController {
 				});
 				break;
 			}
-			case "symbolPreset": {
+			case "appearance.symbolPreset": {
 				setSymbolPreset(value as "unicode" | "nerd" | "ascii").then(() => {
 					this.ctx.statusLine.invalidate();
 					this.ctx.updateEditorTopBorder();
@@ -291,38 +291,38 @@ export class SelectorController {
 				});
 				break;
 			}
-			case "colorBlindMode": {
+			case "appearance.colorBlindMode": {
 				setColorBlindMode(value === "true" || value === true).then(() => {
 					this.ctx.ui.invalidate();
 				});
 				break;
 			}
-			case "temperature": {
+			case "sampling.temperature": {
 				const temp = typeof value === "number" ? value : Number(value);
 				this.ctx.session.agent.temperature = temp >= 0 ? temp : undefined;
 				break;
 			}
-			case "topP": {
+			case "sampling.topP": {
 				const topP = typeof value === "number" ? value : Number(value);
 				this.ctx.session.agent.topP = topP >= 0 ? topP : undefined;
 				break;
 			}
-			case "topK": {
+			case "sampling.topK": {
 				const topK = typeof value === "number" ? value : Number(value);
 				this.ctx.session.agent.topK = topK >= 0 ? topK : undefined;
 				break;
 			}
-			case "minP": {
+			case "sampling.minP": {
 				const minP = typeof value === "number" ? value : Number(value);
 				this.ctx.session.agent.minP = minP >= 0 ? minP : undefined;
 				break;
 			}
-			case "presencePenalty": {
+			case "sampling.presencePenalty": {
 				const presencePenalty = typeof value === "number" ? value : Number(value);
 				this.ctx.session.agent.presencePenalty = presencePenalty >= 0 ? presencePenalty : undefined;
 				break;
 			}
-			case "repetitionPenalty": {
+			case "sampling.repetitionPenalty": {
 				const repetitionPenalty = typeof value === "number" ? value : Number(value);
 				this.ctx.session.agent.repetitionPenalty = repetitionPenalty >= 0 ? repetitionPenalty : undefined;
 				break;
@@ -675,7 +675,7 @@ export class SelectorController {
 					this.ctx.sessionManager.appendLabelChange(entryId, label);
 					this.ctx.ui.requestRender();
 				},
-				settings.get("treeFilterMode"),
+				settings.get("interaction.treeFilterMode"),
 			);
 			return { component: selector, focus: selector };
 		});

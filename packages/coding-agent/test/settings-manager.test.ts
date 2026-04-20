@@ -70,7 +70,7 @@ describe("Settings", () => {
 			});
 
 			// Settings saves a change - should merge, not overwrite
-			settings.set("defaultThinkingLevel", Effort.High);
+			settings.set("model.defaultThinkingLevel", Effort.High);
 			await settings.flush();
 
 			const savedSettings = await readSettings();
@@ -114,7 +114,7 @@ describe("Settings", () => {
 				defaultThinkingLevel: Effort.Low,
 			});
 
-			settings.set("defaultThinkingLevel", Effort.High);
+			settings.set("model.defaultThinkingLevel", Effort.High);
 			await settings.flush();
 
 			const savedSettings = await readSettings();

@@ -116,7 +116,7 @@ describe("AgentSession auto-compaction queue resume", () => {
 			sessionManager,
 			settings: Settings.isolated({
 				"compaction.autoContinue": false,
-				"todo.reminders": true,
+				"todo.reminders.enabled": true,
 				"todo.reminders.max": 3,
 			}),
 			modelRegistry,
