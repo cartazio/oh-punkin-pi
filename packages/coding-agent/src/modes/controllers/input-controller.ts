@@ -360,10 +360,23 @@ export class InputController {
 		const now = Date.now();
 		if (now - this.ctx.lastSigintTime < 500) {
 			void this.ctx.shutdown();
-		} else {
-			this.ctx.clearEditor();
-			this.ctx.lastSigintTime = now;
+			return;
 		}
+		this.ctx.lastSigintTime = now;
+		// Active-work interrupt: mirror onEscape ordering.
+		if (this.ctx.session.isBashRunning) {
+			this.ctx.session.abortBash();
+			return;
+		}
+		if (this.ctx.session.isPythonRunning) {
+			this.ctx.session.abortPython();
+			return;
+		}
+		if (this.ctx.session.isStreaming) {
+			void this.ctx.session.abort();
+			return;
+		}
+		this.ctx.clearEditor();
 	}
 
 	handleCtrlD(): void {
