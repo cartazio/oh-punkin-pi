@@ -106,7 +106,6 @@ export type KnownProvider =
 	| "openrouter"
 	| "kilo"
 	| "vercel-ai-gateway"
-	| "vers"
 	| "zai"
 	| "mistral"
 	| "minimax"
