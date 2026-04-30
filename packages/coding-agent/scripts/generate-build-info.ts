@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 /**
  * Generate build-info.generated.ts with git hash, dirty state, and build timestamp.
- * Preserves existing timestamp if hash and dirty state haven't changed.
+ * The timestamp is refreshed on every explicit generation so compiled binaries report the actual build time.
  */
 
 const outputPath = new URL("../src/build-info.generated.ts", import.meta.url).pathname;
@@ -27,28 +27,6 @@ const [hashResult, statusResult] = await Promise.all([
 
 const gitHash = hashResult ?? "unknown";
 const dirty = hashResult !== null && statusResult !== null && statusResult.length > 0;
-
-// Check existing file for matching hash+dirty to preserve timestamp
-let existingHash: string | null = null;
-let existingDirty: boolean | null = null;
-
-const file = Bun.file(outputPath);
-if (await file.exists()) {
-	try {
-		const content = await file.text();
-		const hashMatch = content.match(/gitHash:\s*"([^"]+)"/);
-		const dirtyMatch = content.match(/dirty:\s*(true|false)/);
-		if (hashMatch) existingHash = hashMatch[1];
-		if (dirtyMatch) existingDirty = dirtyMatch[1] === "true";
-	} catch {
-		// Malformed file — will rewrite
-	}
-}
-
-if (existingHash === gitHash && existingDirty === dirty) {
-	console.log("build-info.generated.ts unchanged (hash and dirty state match)");
-	process.exit(0);
-}
 
 const buildTimestamp = new Date().toISOString();
 

@@ -5,6 +5,7 @@ import { APP_NAME, MIN_BUN_VERSION, VERSION } from "@ohp/utils";
  * lightweight CLI runner from pi-utils.
  */
 import { type CommandEntry, run } from "@ohp/utils/cli";
+import { formatBuildProvenance } from "./build-info";
 
 function parseSemver(version: string): [number, number, number] {
 	function toint(value: string): number {
@@ -58,6 +59,8 @@ const commands: CommandEntry[] = [
 	{ name: "search", load: () => import("./commands/web-search").then(m => m.default), aliases: ["q"] },
 ];
 
+const VERSION_WITH_PROVENANCE = `${VERSION}\n${formatBuildProvenance()}`;
+
 async function showHelp(config: import("@ohp/utils/cli").CliConfig): Promise<void> {
 	const { renderRootHelp } = await import("@ohp/utils/cli");
 	const { getExtraHelpText } = await import("./cli/args");
@@ -88,7 +91,7 @@ export function runCli(argv: string[]): Promise<void> {
 			: isSubcommand(first)
 				? argv
 				: ["launch", ...argv];
-	return run({ bin: APP_NAME, version: VERSION, argv: runArgv, commands, help: showHelp });
+	return run({ bin: APP_NAME, version: VERSION_WITH_PROVENANCE, argv: runArgv, commands, help: showHelp });
 }
 
 await runCli(process.argv.slice(2));

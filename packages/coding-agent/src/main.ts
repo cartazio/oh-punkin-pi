@@ -22,6 +22,7 @@ import {
 	VERSION,
 } from "@ohp/utils";
 import chalk from "chalk";
+import { formatBuildProvenance } from "./build-info";
 import { invalidate as invalidateFsCache } from "./capability/fs";
 import type { Args } from "./cli/args";
 import { processFileArguments } from "./cli/file-processor";
@@ -574,7 +575,7 @@ export async function runRootCommand(parsed: Args, rawArgs: string[]): Promise<v
 	});
 
 	if (parsedArgs.version) {
-		process.stdout.write(`${VERSION}\n`);
+		process.stdout.write(`${VERSION}\n${formatBuildProvenance()}\n`);
 		process.exit(0);
 	}
 

@@ -4,6 +4,7 @@
 import { type Effort, THINKING_EFFORTS } from "@ohp/ai";
 import { APP_NAME, CONFIG_DIR_NAME, logger } from "@ohp/utils";
 import chalk from "chalk";
+import { formatBuildProvenance } from "../build-info";
 import { parseEffort } from "../thinking";
 import { BUILTIN_TOOLS } from "../tools";
 
@@ -280,7 +281,8 @@ ${chalk.bold("Useful Commands:")}
 
 export function printHelp(): void {
 	process.stdout.write(
-		`${chalk.bold(APP_NAME)} - AI coding assistant\n\n` +
+		`${chalk.bold(APP_NAME)} - AI coding assistant\n` +
+			`${formatBuildProvenance()}\n\n` +
 			`Run ${APP_NAME} --help for full command and option details.\n` +
 			`Run ${APP_NAME} <command> --help for command-specific help.\n\n` +
 			`${getExtraHelpText()}\n`,

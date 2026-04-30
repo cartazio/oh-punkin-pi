@@ -98,7 +98,7 @@ const schedulerSegment: StatusLineSegment = {
 			const content = detail ? `Collab:${detail}` : "Collab";
 			return { content: theme.fg("warning", content), visible: true };
 		}
-		return { content: theme.fg("accent", "Auto"), visible: true };
+		return { content: theme.fg("accent", "eager_beaver_mode"), visible: true };
 	},
 };
 
