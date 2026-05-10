@@ -47056,7 +47056,7 @@
 				"cacheRead": 0,
 				"cacheWrite": 0
 			},
-			"contextWindow": 222222,
+			"contextWindow": 1000000,
 			"maxTokens": 8888,
 			"protocol": {
 				"openai": {
