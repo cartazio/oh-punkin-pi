@@ -30,6 +30,25 @@ import { Ellipsis, Hasher, type RenderCache, renderStatusLine } from "../tui";
 import { subprocessToolRegistry } from "./subprocess-tool-registry";
 import type { AgentProgress, SingleResult, TaskParams, TaskToolDetails } from "./types";
 
+type RenderableTaskParams = Partial<TaskParams> & Record<string, unknown>;
+
+function normalizeRenderableTaskParams(args: unknown): {
+	agent?: string;
+	context?: string;
+	isolated?: boolean;
+	taskCount?: number;
+} {
+	if (!args || typeof args !== "object" || Array.isArray(args)) {
+		return {};
+	}
+	const record = args as RenderableTaskParams;
+	return {
+		agent: typeof record.agent === "string" ? record.agent : undefined,
+		context: typeof record.context === "string" ? record.context : undefined,
+		isolated: record.isolated === true,
+		taskCount: Array.isArray(record.tasks) ? record.tasks.length : undefined,
+	};
+}
 /**
  * Get status icon for agent state.
  * For running status, uses animated spinner if spinnerFrame is provided.
@@ -451,17 +470,28 @@ function formatOutputInline(data: unknown, theme: Theme, maxWidth = 80): string 
 /**
  * Render the tool call arguments.
  */
-export function renderCall(args: TaskParams, _options: RenderResultOptions, theme: Theme): Component {
+export function renderCall(args: unknown, _options: RenderResultOptions, theme: Theme): Component {
+	const renderable = normalizeRenderableTaskParams(args);
 	const lines: string[] = [];
-	lines.push(renderStatusLine({ icon: "pending", title: "Task", description: args.agent }, theme));
+	lines.push(
+		renderStatusLine(
+			{
+				icon: "pending",
+				title: "Task",
+				description: renderable.agent ?? theme.fg("muted", "streaming arguments…"),
+			},
+			theme,
+		),
+	);
 
-	const contextTemplate = args.context ?? "";
+	const contextTemplate = renderable.context ?? "";
 	const context = contextTemplate.trim();
 	const hasContext = context.length > 0;
 	const branch = theme.fg("dim", theme.tree.branch);
 	const last = theme.fg("dim", theme.tree.last);
 	const vertical = theme.fg("dim", theme.tree.vertical);
-	const showIsolated = "isolated" in args && args.isolated === true;
+	const showIsolated = renderable.isolated === true;
+	const tasksLabel = renderable.taskCount === undefined ? "streaming…" : `${renderable.taskCount} agents`;
 
 	if (hasContext) {
 		lines.push(` ${branch} ${theme.fg("dim", "Context")}`);
@@ -470,14 +500,14 @@ export function renderCall(args: TaskParams, _options: RenderResultOptions, them
 			lines.push(` ${vertical}  ${content}`);
 		}
 		const taskPrefix = showIsolated ? branch : last;
-		lines.push(` ${taskPrefix} ${theme.fg("dim", "Tasks")}: ${theme.fg("muted", `${args.tasks.length} agents`)}`);
+		lines.push(` ${taskPrefix} ${theme.fg("dim", "Tasks")}: ${theme.fg("muted", tasksLabel)}`);
 		if (showIsolated) {
 			lines.push(` ${last} ${theme.fg("dim", "Isolated")}: ${theme.fg("muted", "true")}`);
 		}
 		return new Text(lines.join("\n"), 0, 0);
 	}
 
-	lines.push(`${theme.fg("dim", "Tasks")}: ${theme.fg("muted", `${args.tasks.length} agents`)}`);
+	lines.push(`${theme.fg("dim", "Tasks")}: ${theme.fg("muted", tasksLabel)}`);
 	if (showIsolated) {
 		lines.push(`${theme.fg("dim", "Isolated")}: ${theme.fg("muted", "true")}`);
 	}
