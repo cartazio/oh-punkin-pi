@@ -258,6 +258,28 @@ describe("parseModelPattern", () => {
 			expect(result.explicitThinkingLevel).toBe(false);
 			expect(result.warning).toBeUndefined();
 		});
+
+		test("openrouter provider prefix accepts documented :nitro modifier", () => {
+			const result = parseModelPattern("openrouter/moonshotai/kimi-k2.5:nitro", allModels);
+
+			expect(result.model?.provider).toBe("openrouter");
+			expect(result.model?.id).toBe("moonshotai/kimi-k2.5:nitro");
+			expect(result.model?.name).toBe("Kimi K2.5 (OpenRouter) (:nitro)");
+			expect(result.model?.routing?.openrouter?.sort).toBe("throughput");
+			expect(result.thinkingLevel).toBeUndefined();
+			expect(result.explicitThinkingLevel).toBe(false);
+			expect(result.warning).toBeUndefined();
+		});
+
+		test("openrouter provider prefix accepts documented :floor modifier", () => {
+			const result = parseModelPattern("openrouter/moonshotai/kimi-k2.5:floor", allModels);
+
+			expect(result.model?.provider).toBe("openrouter");
+			expect(result.model?.id).toBe("moonshotai/kimi-k2.5:floor");
+			expect(result.model?.name).toBe("Kimi K2.5 (OpenRouter) (:floor)");
+			expect(result.model?.routing?.openrouter?.sort).toBe("price");
+			expect(result.warning).toBeUndefined();
+		});
 	});
 
 	describe("invalid thinking levels with OpenRouter models", () => {
@@ -550,6 +572,43 @@ describe("resolveCliModel", () => {
 		expect(result.error).toBeUndefined();
 		expect(result.model?.provider).toBe("openrouter");
 		expect(result.model?.id).toBe("qwen/qwen3-coder:exacto");
+	});
+
+	test("accepts documented OpenRouter model modifiers in --model", () => {
+		const registry = {
+			getAll: () => allModels,
+		} as unknown as Parameters<typeof resolveCliModel>[0]["modelRegistry"];
+
+		const nitro = resolveCliModel({
+			cliModel: "openrouter/moonshotai/kimi-k2.5:nitro",
+			modelRegistry: registry,
+		});
+		const floor = resolveCliModel({
+			cliProvider: "openrouter",
+			cliModel: "moonshotai/kimi-k2.5:floor",
+			modelRegistry: registry,
+		});
+
+		expect(nitro.error).toBeUndefined();
+		expect(nitro.model?.id).toBe("moonshotai/kimi-k2.5:nitro");
+		expect(nitro.model?.routing?.openrouter?.sort).toBe("throughput");
+		expect(floor.error).toBeUndefined();
+		expect(floor.model?.id).toBe("moonshotai/kimi-k2.5:floor");
+		expect(floor.model?.routing?.openrouter?.sort).toBe("price");
+	});
+
+	test("rejects undocumented OpenRouter model modifiers in --model", () => {
+		const registry = {
+			getAll: () => allModels,
+		} as unknown as Parameters<typeof resolveCliModel>[0]["modelRegistry"];
+
+		const result = resolveCliModel({
+			cliModel: "openrouter/moonshotai/kimi-k2.5:turbo",
+			modelRegistry: registry,
+		});
+
+		expect(result.model).toBeUndefined();
+		expect(result.error).toContain("not found");
 	});
 
 	test("prefers decomposed provider+id over flat id match when ambiguous", () => {

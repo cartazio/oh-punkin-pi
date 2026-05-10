@@ -18,13 +18,15 @@
 			},
 			"contextWindow": 202752,
 			"maxTokens": 16384,
-			"compat": {
-				"supportsDeveloperRole": false
-			},
 			"thinking": {
 				"mode": "effort",
 				"minLevel": "minimal",
 				"maxLevel": "high"
+			},
+			"protocol": {
+				"openai": {
+					"supportsDeveloperRole": false
+				}
 			}
 		},
 		"glm-5": {
@@ -45,13 +47,15 @@
 			},
 			"contextWindow": 202752,
 			"maxTokens": 16384,
-			"compat": {
-				"supportsDeveloperRole": false
-			},
 			"thinking": {
 				"mode": "effort",
 				"minLevel": "minimal",
 				"maxLevel": "high"
+			},
+			"protocol": {
+				"openai": {
+					"supportsDeveloperRole": false
+				}
 			}
 		},
 		"kimi-k2.5": {
@@ -73,13 +77,15 @@
 			},
 			"contextWindow": 262144,
 			"maxTokens": 32768,
-			"compat": {
-				"supportsDeveloperRole": false
-			},
 			"thinking": {
 				"mode": "effort",
 				"minLevel": "minimal",
 				"maxLevel": "high"
+			},
+			"protocol": {
+				"openai": {
+					"supportsDeveloperRole": false
+				}
 			}
 		},
 		"MiniMax-M2.5": {
@@ -100,13 +106,15 @@
 			},
 			"contextWindow": 196608,
 			"maxTokens": 24576,
-			"compat": {
-				"supportsDeveloperRole": false
-			},
 			"thinking": {
 				"mode": "effort",
 				"minLevel": "minimal",
 				"maxLevel": "high"
+			},
+			"protocol": {
+				"openai": {
+					"supportsDeveloperRole": false
+				}
 			}
 		},
 		"qwen3-coder-next": {
@@ -127,8 +135,10 @@
 			},
 			"contextWindow": 262144,
 			"maxTokens": 65536,
-			"compat": {
-				"supportsDeveloperRole": false
+			"protocol": {
+				"openai": {
+					"supportsDeveloperRole": false
+				}
 			}
 		},
 		"qwen3-coder-plus": {
@@ -149,8 +159,10 @@
 			},
 			"contextWindow": 1000000,
 			"maxTokens": 65536,
-			"compat": {
-				"supportsDeveloperRole": false
+			"protocol": {
+				"openai": {
+					"supportsDeveloperRole": false
+				}
 			}
 		},
 		"qwen3-max-2026-01-23": {
@@ -171,8 +183,10 @@
 			},
 			"contextWindow": 262144,
 			"maxTokens": 32768,
-			"compat": {
-				"supportsDeveloperRole": false
+			"protocol": {
+				"openai": {
+					"supportsDeveloperRole": false
+				}
 			}
 		},
 		"qwen3.5-plus": {
@@ -194,13 +208,15 @@
 			},
 			"contextWindow": 1000000,
 			"maxTokens": 65536,
-			"compat": {
-				"supportsDeveloperRole": false
-			},
 			"thinking": {
 				"mode": "effort",
 				"minLevel": "minimal",
 				"maxLevel": "high"
+			},
+			"protocol": {
+				"openai": {
+					"supportsDeveloperRole": false
+				}
 			}
 		},
 		"qwen3.6-plus": {
@@ -222,13 +238,15 @@
 			},
 			"contextWindow": 1000000,
 			"maxTokens": 65536,
-			"compat": {
-				"supportsDeveloperRole": false
-			},
 			"thinking": {
 				"mode": "effort",
 				"minLevel": "minimal",
 				"maxLevel": "high"
+			},
+			"protocol": {
+				"openai": {
+					"supportsDeveloperRole": false
+				}
 			}
 		}
 	},
@@ -5071,10 +5089,12 @@
 				"Editor-Plugin-Version": "copilot-chat/0.35.0",
 				"Copilot-Integration-Id": "vscode-chat"
 			},
-			"compat": {
-				"supportsStore": false,
-				"supportsDeveloperRole": false,
-				"supportsReasoningEffort": false
+			"protocol": {
+				"openai": {
+					"supportsStore": false,
+					"supportsDeveloperRole": false,
+					"supportsReasoningEffort": false
+				}
 			}
 		},
 		"gemini-3-flash-preview": {
@@ -5102,15 +5122,17 @@
 				"Editor-Plugin-Version": "copilot-chat/0.35.0",
 				"Copilot-Integration-Id": "vscode-chat"
 			},
-			"compat": {
-				"supportsStore": false,
-				"supportsDeveloperRole": false,
-				"supportsReasoningEffort": false
-			},
 			"thinking": {
 				"mode": "effort",
 				"minLevel": "minimal",
 				"maxLevel": "high"
+			},
+			"protocol": {
+				"openai": {
+					"supportsStore": false,
+					"supportsDeveloperRole": false,
+					"supportsReasoningEffort": false
+				}
 			}
 		},
 		"gemini-3-pro-preview": {
@@ -5138,15 +5160,17 @@
 				"Editor-Plugin-Version": "copilot-chat/0.35.0",
 				"Copilot-Integration-Id": "vscode-chat"
 			},
-			"compat": {
-				"supportsStore": false,
-				"supportsDeveloperRole": false,
-				"supportsReasoningEffort": false
-			},
 			"thinking": {
 				"mode": "effort",
 				"minLevel": "low",
 				"maxLevel": "high"
+			},
+			"protocol": {
+				"openai": {
+					"supportsStore": false,
+					"supportsDeveloperRole": false,
+					"supportsReasoningEffort": false
+				}
 			}
 		},
 		"gemini-3.1-pro-preview": {
@@ -5174,15 +5198,17 @@
 				"Editor-Plugin-Version": "copilot-chat/0.35.0",
 				"Copilot-Integration-Id": "vscode-chat"
 			},
-			"compat": {
-				"supportsStore": false,
-				"supportsDeveloperRole": false,
-				"supportsReasoningEffort": false
-			},
 			"thinking": {
 				"mode": "effort",
 				"minLevel": "low",
 				"maxLevel": "high"
+			},
+			"protocol": {
+				"openai": {
+					"supportsStore": false,
+					"supportsDeveloperRole": false,
+					"supportsReasoningEffort": false
+				}
 			}
 		},
 		"gpt-4.1": {
@@ -5210,10 +5236,12 @@
 				"Editor-Plugin-Version": "copilot-chat/0.35.0",
 				"Copilot-Integration-Id": "vscode-chat"
 			},
-			"compat": {
-				"supportsStore": false,
-				"supportsDeveloperRole": false,
-				"supportsReasoningEffort": false
+			"protocol": {
+				"openai": {
+					"supportsStore": false,
+					"supportsDeveloperRole": false,
+					"supportsReasoningEffort": false
+				}
 			}
 		},
 		"gpt-4o": {
@@ -5241,12 +5269,14 @@
 				"Editor-Plugin-Version": "copilot-chat/0.35.0",
 				"Copilot-Integration-Id": "vscode-chat"
 			},
-			"compat": {
-				"supportsStore": false,
-				"supportsDeveloperRole": false,
-				"supportsReasoningEffort": false
-			},
-			"premiumMultiplier": 0
+			"premiumMultiplier": 0,
+			"protocol": {
+				"openai": {
+					"supportsStore": false,
+					"supportsDeveloperRole": false,
+					"supportsReasoningEffort": false
+				}
+			}
 		},
 		"gpt-5": {
 			"id": "gpt-5",
@@ -5645,16 +5675,18 @@
 				"Editor-Plugin-Version": "copilot-chat/0.35.0",
 				"Copilot-Integration-Id": "vscode-chat"
 			},
-			"compat": {
-				"supportsStore": false,
-				"supportsDeveloperRole": false,
-				"supportsReasoningEffort": false
-			},
 			"premiumMultiplier": 0.25,
 			"thinking": {
 				"mode": "effort",
 				"minLevel": "minimal",
 				"maxLevel": "high"
+			},
+			"protocol": {
+				"openai": {
+					"supportsStore": false,
+					"supportsDeveloperRole": false,
+					"supportsReasoningEffort": false
+				}
 			}
 		}
 	},
@@ -18833,15 +18865,17 @@
 			},
 			"contextWindow": 262144,
 			"maxTokens": 32000,
-			"compat": {
-				"thinkingFormat": "zai",
-				"reasoningContentField": "reasoning_content",
-				"supportsDeveloperRole": false
-			},
 			"thinking": {
 				"mode": "effort",
 				"minLevel": "minimal",
 				"maxLevel": "high"
+			},
+			"protocol": {
+				"openai": {
+					"thinkingFormat": "zai",
+					"reasoningContentField": "reasoning_content",
+					"supportsDeveloperRole": false
+				}
 			}
 		},
 		"kimi-k2": {
@@ -18866,10 +18900,12 @@
 			},
 			"contextWindow": 262144,
 			"maxTokens": 262144,
-			"compat": {
-				"thinkingFormat": "zai",
-				"reasoningContentField": "reasoning_content",
-				"supportsDeveloperRole": false
+			"protocol": {
+				"openai": {
+					"thinkingFormat": "zai",
+					"reasoningContentField": "reasoning_content",
+					"supportsDeveloperRole": false
+				}
 			}
 		},
 		"kimi-k2-turbo-preview": {
@@ -18894,15 +18930,17 @@
 			},
 			"contextWindow": 262144,
 			"maxTokens": 32000,
-			"compat": {
-				"thinkingFormat": "zai",
-				"reasoningContentField": "reasoning_content",
-				"supportsDeveloperRole": false
-			},
 			"thinking": {
 				"mode": "effort",
 				"minLevel": "minimal",
 				"maxLevel": "high"
+			},
+			"protocol": {
+				"openai": {
+					"thinkingFormat": "zai",
+					"reasoningContentField": "reasoning_content",
+					"supportsDeveloperRole": false
+				}
 			}
 		},
 		"kimi-k2.5": {
@@ -18928,15 +18966,17 @@
 			},
 			"contextWindow": 262144,
 			"maxTokens": 65536,
-			"compat": {
-				"thinkingFormat": "zai",
-				"reasoningContentField": "reasoning_content",
-				"supportsDeveloperRole": false
-			},
 			"thinking": {
 				"mode": "effort",
 				"minLevel": "minimal",
 				"maxLevel": "high"
+			},
+			"protocol": {
+				"openai": {
+					"thinkingFormat": "zai",
+					"reasoningContentField": "reasoning_content",
+					"supportsDeveloperRole": false
+				}
 			}
 		}
 	},
@@ -20597,16 +20637,18 @@
 			},
 			"contextWindow": 196608,
 			"maxTokens": 128000,
-			"compat": {
-				"supportsStore": false,
-				"supportsDeveloperRole": false,
-				"thinkingFormat": "zai",
-				"reasoningContentField": "reasoning_content"
-			},
 			"thinking": {
 				"mode": "effort",
 				"minLevel": "minimal",
 				"maxLevel": "high"
+			},
+			"protocol": {
+				"openai": {
+					"supportsStore": false,
+					"supportsDeveloperRole": false,
+					"thinkingFormat": "zai",
+					"reasoningContentField": "reasoning_content"
+				}
 			}
 		},
 		"MiniMax-M2.1": {
@@ -20627,16 +20669,18 @@
 			},
 			"contextWindow": 204800,
 			"maxTokens": 131072,
-			"compat": {
-				"supportsStore": false,
-				"supportsDeveloperRole": false,
-				"thinkingFormat": "zai",
-				"reasoningContentField": "reasoning_content"
-			},
 			"thinking": {
 				"mode": "effort",
 				"minLevel": "minimal",
 				"maxLevel": "high"
+			},
+			"protocol": {
+				"openai": {
+					"supportsStore": false,
+					"supportsDeveloperRole": false,
+					"thinkingFormat": "zai",
+					"reasoningContentField": "reasoning_content"
+				}
 			}
 		},
 		"MiniMax-M2.1-lightning": {
@@ -20655,17 +20699,19 @@
 				"cacheRead": 0,
 				"cacheWrite": 0
 			},
-			"compat": {
-				"supportsDeveloperRole": false,
-				"thinkingFormat": "zai",
-				"reasoningContentField": "reasoning_content"
-			},
 			"contextWindow": 1000000,
 			"maxTokens": 32000,
 			"thinking": {
 				"mode": "effort",
 				"minLevel": "minimal",
 				"maxLevel": "high"
+			},
+			"protocol": {
+				"openai": {
+					"supportsDeveloperRole": false,
+					"thinkingFormat": "zai",
+					"reasoningContentField": "reasoning_content"
+				}
 			}
 		},
 		"MiniMax-M2.5": {
@@ -20686,16 +20732,18 @@
 			},
 			"contextWindow": 204800,
 			"maxTokens": 131072,
-			"compat": {
-				"supportsStore": false,
-				"supportsDeveloperRole": false,
-				"thinkingFormat": "zai",
-				"reasoningContentField": "reasoning_content"
-			},
 			"thinking": {
 				"mode": "effort",
 				"minLevel": "minimal",
 				"maxLevel": "high"
+			},
+			"protocol": {
+				"openai": {
+					"supportsStore": false,
+					"supportsDeveloperRole": false,
+					"thinkingFormat": "zai",
+					"reasoningContentField": "reasoning_content"
+				}
 			}
 		},
 		"MiniMax-M2.5-highspeed": {
@@ -20716,16 +20764,18 @@
 			},
 			"contextWindow": 204800,
 			"maxTokens": 131072,
-			"compat": {
-				"supportsStore": false,
-				"supportsDeveloperRole": false,
-				"thinkingFormat": "zai",
-				"reasoningContentField": "reasoning_content"
-			},
 			"thinking": {
 				"mode": "effort",
 				"minLevel": "minimal",
 				"maxLevel": "high"
+			},
+			"protocol": {
+				"openai": {
+					"supportsStore": false,
+					"supportsDeveloperRole": false,
+					"thinkingFormat": "zai",
+					"reasoningContentField": "reasoning_content"
+				}
 			}
 		},
 		"MiniMax-M2.5-lightning": {
@@ -20744,17 +20794,19 @@
 				"cacheRead": 0,
 				"cacheWrite": 0
 			},
-			"compat": {
-				"supportsDeveloperRole": false,
-				"thinkingFormat": "zai",
-				"reasoningContentField": "reasoning_content"
-			},
 			"contextWindow": 204800,
 			"maxTokens": 32000,
 			"thinking": {
 				"mode": "effort",
 				"minLevel": "minimal",
 				"maxLevel": "high"
+			},
+			"protocol": {
+				"openai": {
+					"supportsDeveloperRole": false,
+					"thinkingFormat": "zai",
+					"reasoningContentField": "reasoning_content"
+				}
 			}
 		},
 		"MiniMax-M2.7": {
@@ -20775,16 +20827,18 @@
 			},
 			"contextWindow": 204800,
 			"maxTokens": 131072,
-			"compat": {
-				"supportsStore": false,
-				"supportsDeveloperRole": false,
-				"thinkingFormat": "zai",
-				"reasoningContentField": "reasoning_content"
-			},
 			"thinking": {
 				"mode": "effort",
 				"minLevel": "minimal",
 				"maxLevel": "high"
+			},
+			"protocol": {
+				"openai": {
+					"supportsStore": false,
+					"supportsDeveloperRole": false,
+					"thinkingFormat": "zai",
+					"reasoningContentField": "reasoning_content"
+				}
 			}
 		},
 		"MiniMax-M2.7-highspeed": {
@@ -20805,16 +20859,18 @@
 			},
 			"contextWindow": 204800,
 			"maxTokens": 131072,
-			"compat": {
-				"supportsStore": false,
-				"supportsDeveloperRole": false,
-				"thinkingFormat": "zai",
-				"reasoningContentField": "reasoning_content"
-			},
 			"thinking": {
 				"mode": "effort",
 				"minLevel": "minimal",
 				"maxLevel": "high"
+			},
+			"protocol": {
+				"openai": {
+					"supportsStore": false,
+					"supportsDeveloperRole": false,
+					"thinkingFormat": "zai",
+					"reasoningContentField": "reasoning_content"
+				}
 			}
 		}
 	},
@@ -20837,16 +20893,18 @@
 			},
 			"contextWindow": 196608,
 			"maxTokens": 128000,
-			"compat": {
-				"supportsStore": false,
-				"supportsDeveloperRole": false,
-				"thinkingFormat": "zai",
-				"reasoningContentField": "reasoning_content"
-			},
 			"thinking": {
 				"mode": "effort",
 				"minLevel": "minimal",
 				"maxLevel": "high"
+			},
+			"protocol": {
+				"openai": {
+					"supportsStore": false,
+					"supportsDeveloperRole": false,
+					"thinkingFormat": "zai",
+					"reasoningContentField": "reasoning_content"
+				}
 			}
 		},
 		"MiniMax-M2.1": {
@@ -20867,16 +20925,18 @@
 			},
 			"contextWindow": 204800,
 			"maxTokens": 131072,
-			"compat": {
-				"supportsStore": false,
-				"supportsDeveloperRole": false,
-				"thinkingFormat": "zai",
-				"reasoningContentField": "reasoning_content"
-			},
 			"thinking": {
 				"mode": "effort",
 				"minLevel": "minimal",
 				"maxLevel": "high"
+			},
+			"protocol": {
+				"openai": {
+					"supportsStore": false,
+					"supportsDeveloperRole": false,
+					"thinkingFormat": "zai",
+					"reasoningContentField": "reasoning_content"
+				}
 			}
 		},
 		"MiniMax-M2.1-lightning": {
@@ -20895,17 +20955,19 @@
 				"cacheRead": 0,
 				"cacheWrite": 0
 			},
-			"compat": {
-				"supportsDeveloperRole": false,
-				"thinkingFormat": "zai",
-				"reasoningContentField": "reasoning_content"
-			},
 			"contextWindow": 1000000,
 			"maxTokens": 32000,
 			"thinking": {
 				"mode": "effort",
 				"minLevel": "minimal",
 				"maxLevel": "high"
+			},
+			"protocol": {
+				"openai": {
+					"supportsDeveloperRole": false,
+					"thinkingFormat": "zai",
+					"reasoningContentField": "reasoning_content"
+				}
 			}
 		},
 		"MiniMax-M2.5": {
@@ -20926,16 +20988,18 @@
 			},
 			"contextWindow": 204800,
 			"maxTokens": 131072,
-			"compat": {
-				"supportsStore": false,
-				"supportsDeveloperRole": false,
-				"thinkingFormat": "zai",
-				"reasoningContentField": "reasoning_content"
-			},
 			"thinking": {
 				"mode": "effort",
 				"minLevel": "minimal",
 				"maxLevel": "high"
+			},
+			"protocol": {
+				"openai": {
+					"supportsStore": false,
+					"supportsDeveloperRole": false,
+					"thinkingFormat": "zai",
+					"reasoningContentField": "reasoning_content"
+				}
 			}
 		},
 		"MiniMax-M2.5-highspeed": {
@@ -20956,16 +21020,18 @@
 			},
 			"contextWindow": 204800,
 			"maxTokens": 131072,
-			"compat": {
-				"supportsStore": false,
-				"supportsDeveloperRole": false,
-				"thinkingFormat": "zai",
-				"reasoningContentField": "reasoning_content"
-			},
 			"thinking": {
 				"mode": "effort",
 				"minLevel": "minimal",
 				"maxLevel": "high"
+			},
+			"protocol": {
+				"openai": {
+					"supportsStore": false,
+					"supportsDeveloperRole": false,
+					"thinkingFormat": "zai",
+					"reasoningContentField": "reasoning_content"
+				}
 			}
 		},
 		"MiniMax-M2.5-lightning": {
@@ -20984,17 +21050,19 @@
 				"cacheRead": 0,
 				"cacheWrite": 0
 			},
-			"compat": {
-				"supportsDeveloperRole": false,
-				"thinkingFormat": "zai",
-				"reasoningContentField": "reasoning_content"
-			},
 			"contextWindow": 204800,
 			"maxTokens": 32000,
 			"thinking": {
 				"mode": "effort",
 				"minLevel": "minimal",
 				"maxLevel": "high"
+			},
+			"protocol": {
+				"openai": {
+					"supportsDeveloperRole": false,
+					"thinkingFormat": "zai",
+					"reasoningContentField": "reasoning_content"
+				}
 			}
 		},
 		"MiniMax-M2.7": {
@@ -21015,16 +21083,18 @@
 			},
 			"contextWindow": 204800,
 			"maxTokens": 131072,
-			"compat": {
-				"supportsStore": false,
-				"supportsDeveloperRole": false,
-				"thinkingFormat": "zai",
-				"reasoningContentField": "reasoning_content"
-			},
 			"thinking": {
 				"mode": "effort",
 				"minLevel": "minimal",
 				"maxLevel": "high"
+			},
+			"protocol": {
+				"openai": {
+					"supportsStore": false,
+					"supportsDeveloperRole": false,
+					"thinkingFormat": "zai",
+					"reasoningContentField": "reasoning_content"
+				}
 			}
 		},
 		"MiniMax-M2.7-highspeed": {
@@ -21045,16 +21115,18 @@
 			},
 			"contextWindow": 204800,
 			"maxTokens": 131072,
-			"compat": {
-				"supportsStore": false,
-				"supportsDeveloperRole": false,
-				"thinkingFormat": "zai",
-				"reasoningContentField": "reasoning_content"
-			},
 			"thinking": {
 				"mode": "effort",
 				"minLevel": "minimal",
 				"maxLevel": "high"
+			},
+			"protocol": {
+				"openai": {
+					"supportsStore": false,
+					"supportsDeveloperRole": false,
+					"thinkingFormat": "zai",
+					"reasoningContentField": "reasoning_content"
+				}
 			}
 		}
 	},
@@ -21896,8 +21968,8 @@
 			},
 			"contextWindow": 300000,
 			"maxTokens": 5120,
-			"compat": {
-				"supportsToolChoice": false
+			"capabilities": {
+				"toolChoice": false
 			}
 		},
 		"amazon/nova-micro-v1": {
@@ -21918,8 +21990,8 @@
 			},
 			"contextWindow": 222222,
 			"maxTokens": 8888,
-			"compat": {
-				"supportsToolChoice": false
+			"capabilities": {
+				"toolChoice": false
 			}
 		},
 		"amazon/nova-pro-v1": {
@@ -21941,8 +22013,8 @@
 			},
 			"contextWindow": 300000,
 			"maxTokens": 5120,
-			"compat": {
-				"supportsToolChoice": false
+			"capabilities": {
+				"toolChoice": false
 			}
 		},
 		"anthracite-org/magnum-v2-72b": {
@@ -24774,15 +24846,17 @@
 				"Editor-Plugin-Version": "copilot-chat/0.35.0",
 				"Copilot-Integration-Id": "vscode-chat"
 			},
-			"compat": {
-				"supportsStore": false,
-				"supportsDeveloperRole": false,
-				"supportsReasoningEffort": false
-			},
 			"thinking": {
 				"mode": "effort",
 				"minLevel": "minimal",
 				"maxLevel": "high"
+			},
+			"protocol": {
+				"openai": {
+					"supportsStore": false,
+					"supportsDeveloperRole": false,
+					"supportsReasoningEffort": false
+				}
 			}
 		},
 		"gemini-2.5-pro-exp-03-25": {
@@ -24892,13 +24966,15 @@
 			},
 			"contextWindow": 1000000,
 			"maxTokens": 64000,
-			"compat": {
-				"supportsUsageInStreaming": false
-			},
 			"thinking": {
 				"mode": "effort",
 				"minLevel": "low",
 				"maxLevel": "high"
+			},
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"gemini-3-pro-preview-thinking": {
@@ -27491,15 +27567,17 @@
 			},
 			"contextWindow": 196608,
 			"maxTokens": 128000,
-			"compat": {
-				"supportsDeveloperRole": false,
-				"thinkingFormat": "zai",
-				"reasoningContentField": "reasoning_content"
-			},
 			"thinking": {
 				"mode": "effort",
 				"minLevel": "minimal",
 				"maxLevel": "high"
+			},
+			"protocol": {
+				"openai": {
+					"supportsDeveloperRole": false,
+					"thinkingFormat": "zai",
+					"reasoningContentField": "reasoning_content"
+				}
 			}
 		},
 		"minimax/minimax-01": {
@@ -32263,8 +32341,10 @@
 			},
 			"contextWindow": 32000,
 			"maxTokens": 8192,
-			"compat": {
-				"supportsUsageInStreaming": false
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"venice-uncensored:web": {
@@ -37980,8 +38060,8 @@
 			},
 			"contextWindow": 300000,
 			"maxTokens": 5120,
-			"compat": {
-				"supportsToolChoice": false
+			"capabilities": {
+				"toolChoice": false
 			}
 		},
 		"amazon/nova-micro-v1": {
@@ -38002,8 +38082,8 @@
 			},
 			"contextWindow": 128000,
 			"maxTokens": 5120,
-			"compat": {
-				"supportsToolChoice": false
+			"capabilities": {
+				"toolChoice": false
 			}
 		},
 		"amazon/nova-premier-v1": {
@@ -38025,8 +38105,8 @@
 			},
 			"contextWindow": 1000000,
 			"maxTokens": 32000,
-			"compat": {
-				"supportsToolChoice": false
+			"capabilities": {
+				"toolChoice": false
 			}
 		},
 		"amazon/nova-pro-v1": {
@@ -38048,8 +38128,8 @@
 			},
 			"contextWindow": 300000,
 			"maxTokens": 5120,
-			"compat": {
-				"supportsToolChoice": false
+			"capabilities": {
+				"toolChoice": false
 			}
 		},
 		"anthropic/claude-3-haiku": {
@@ -38425,8 +38505,8 @@
 			},
 			"contextWindow": 131000,
 			"maxTokens": 8888,
-			"compat": {
-				"supportsToolChoice": false
+			"capabilities": {
+				"toolChoice": false
 			}
 		},
 		"arcee-ai/trinity-large-preview:free": {
@@ -38447,8 +38527,8 @@
 			},
 			"contextWindow": 131000,
 			"maxTokens": 8888,
-			"compat": {
-				"supportsToolChoice": false
+			"capabilities": {
+				"toolChoice": false
 			}
 		},
 		"arcee-ai/trinity-large-thinking": {
@@ -39984,13 +40064,13 @@
 			},
 			"contextWindow": 196608,
 			"maxTokens": 196608,
-			"compat": {
-				"supportsToolChoice": false
-			},
 			"thinking": {
 				"mode": "effort",
 				"minLevel": "minimal",
 				"maxLevel": "high"
+			},
+			"capabilities": {
+				"toolChoice": false
 			}
 		},
 		"minimax/minimax-m2.7": {
@@ -42452,8 +42532,8 @@
 			},
 			"contextWindow": 1048756,
 			"maxTokens": 262144,
-			"compat": {
-				"supportsToolChoice": false
+			"capabilities": {
+				"toolChoice": false
 			}
 		},
 		"poolside/laguna-m.1:free": {
@@ -43804,8 +43884,8 @@
 			},
 			"contextWindow": 256000,
 			"maxTokens": 64000,
-			"compat": {
-				"supportsToolChoice": false
+			"capabilities": {
+				"toolChoice": false
 			}
 		},
 		"stepfun/step-3.5-flash:free": {
@@ -43826,13 +43906,13 @@
 			},
 			"contextWindow": 256000,
 			"maxTokens": 256000,
-			"compat": {
-				"supportsToolChoice": false
-			},
 			"thinking": {
 				"mode": "effort",
 				"minLevel": "minimal",
 				"maxLevel": "high"
+			},
+			"capabilities": {
+				"toolChoice": false
 			}
 		},
 		"tencent/hy3-preview:free": {
@@ -45292,8 +45372,10 @@
 			},
 			"contextWindow": 222222,
 			"maxTokens": 8888,
-			"compat": {
-				"supportsUsageInStreaming": false
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"aion-labs.aion-2-0": {
@@ -45314,8 +45396,10 @@
 			},
 			"contextWindow": 222222,
 			"maxTokens": 8888,
-			"compat": {
-				"supportsUsageInStreaming": false
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"arcee-trinity-large-thinking": {
@@ -45336,8 +45420,10 @@
 			},
 			"contextWindow": 256000,
 			"maxTokens": 8888,
-			"compat": {
-				"supportsUsageInStreaming": false
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"claude-opus-4-5": {
@@ -45359,13 +45445,15 @@
 			},
 			"contextWindow": 200000,
 			"maxTokens": 64000,
-			"compat": {
-				"supportsUsageInStreaming": false
-			},
 			"thinking": {
 				"mode": "effort",
 				"minLevel": "minimal",
 				"maxLevel": "xhigh"
+			},
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"claude-opus-4-6": {
@@ -45387,13 +45475,15 @@
 			},
 			"contextWindow": 1000000,
 			"maxTokens": 128000,
-			"compat": {
-				"supportsUsageInStreaming": false
-			},
 			"thinking": {
 				"mode": "effort",
 				"minLevel": "minimal",
 				"maxLevel": "xhigh"
+			},
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"claude-opus-4-6-fast": {
@@ -45414,8 +45504,10 @@
 			},
 			"contextWindow": 1000000,
 			"maxTokens": 8888,
-			"compat": {
-				"supportsUsageInStreaming": false
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"claude-opus-4-7": {
@@ -45437,13 +45529,15 @@
 			},
 			"contextWindow": 1000000,
 			"maxTokens": 128000,
-			"compat": {
-				"supportsUsageInStreaming": false
-			},
 			"thinking": {
 				"mode": "effort",
 				"minLevel": "minimal",
 				"maxLevel": "xhigh"
+			},
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"claude-opus-45": {
@@ -45465,13 +45559,15 @@
 			},
 			"contextWindow": 198000,
 			"maxTokens": 8192,
-			"compat": {
-				"supportsUsageInStreaming": false
-			},
 			"thinking": {
 				"mode": "effort",
 				"minLevel": "minimal",
 				"maxLevel": "xhigh"
+			},
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"claude-sonnet-4-5": {
@@ -45493,13 +45589,15 @@
 			},
 			"contextWindow": 1000000,
 			"maxTokens": 64000,
-			"compat": {
-				"supportsUsageInStreaming": false
-			},
 			"thinking": {
 				"mode": "effort",
 				"minLevel": "minimal",
 				"maxLevel": "xhigh"
+			},
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"claude-sonnet-4-6": {
@@ -45521,13 +45619,15 @@
 			},
 			"contextWindow": 1000000,
 			"maxTokens": 64000,
-			"compat": {
-				"supportsUsageInStreaming": false
-			},
 			"thinking": {
 				"mode": "effort",
 				"minLevel": "minimal",
 				"maxLevel": "xhigh"
+			},
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"claude-sonnet-45": {
@@ -45549,13 +45649,15 @@
 			},
 			"contextWindow": 198000,
 			"maxTokens": 8192,
-			"compat": {
-				"supportsUsageInStreaming": false
-			},
 			"thinking": {
 				"mode": "effort",
 				"minLevel": "minimal",
 				"maxLevel": "xhigh"
+			},
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"deepseek-v3.2": {
@@ -45576,13 +45678,15 @@
 			},
 			"contextWindow": 160000,
 			"maxTokens": 8192,
-			"compat": {
-				"supportsUsageInStreaming": false
-			},
 			"thinking": {
 				"mode": "effort",
 				"minLevel": "minimal",
 				"maxLevel": "xhigh"
+			},
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"deepseek-v4-flash": {
@@ -45603,13 +45707,15 @@
 			},
 			"contextWindow": 1000000,
 			"maxTokens": 384000,
-			"compat": {
-				"supportsUsageInStreaming": false
-			},
 			"thinking": {
 				"mode": "effort",
 				"minLevel": "minimal",
 				"maxLevel": "xhigh"
+			},
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"deepseek-v4-pro": {
@@ -45630,13 +45736,15 @@
 			},
 			"contextWindow": 1000000,
 			"maxTokens": 384000,
-			"compat": {
-				"supportsUsageInStreaming": false
-			},
 			"thinking": {
 				"mode": "effort",
 				"minLevel": "minimal",
 				"maxLevel": "xhigh"
+			},
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"e2ee-gemma-3-27b-p": {
@@ -45657,8 +45765,10 @@
 			},
 			"contextWindow": 222222,
 			"maxTokens": 8888,
-			"compat": {
-				"supportsUsageInStreaming": false
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"e2ee-glm-4-7-flash-p": {
@@ -45679,8 +45789,10 @@
 			},
 			"contextWindow": 222222,
 			"maxTokens": 8888,
-			"compat": {
-				"supportsUsageInStreaming": false
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"e2ee-glm-4-7-p": {
@@ -45701,8 +45813,10 @@
 			},
 			"contextWindow": 222222,
 			"maxTokens": 8888,
-			"compat": {
-				"supportsUsageInStreaming": false
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"e2ee-glm-5": {
@@ -45723,8 +45837,10 @@
 			},
 			"contextWindow": 222222,
 			"maxTokens": 8888,
-			"compat": {
-				"supportsUsageInStreaming": false
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"e2ee-glm-5-1": {
@@ -45745,8 +45861,10 @@
 			},
 			"contextWindow": 222222,
 			"maxTokens": 8888,
-			"compat": {
-				"supportsUsageInStreaming": false
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"e2ee-gpt-oss-120b-p": {
@@ -45767,8 +45885,10 @@
 			},
 			"contextWindow": 222222,
 			"maxTokens": 8888,
-			"compat": {
-				"supportsUsageInStreaming": false
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"e2ee-gpt-oss-20b-p": {
@@ -45789,8 +45909,10 @@
 			},
 			"contextWindow": 222222,
 			"maxTokens": 8888,
-			"compat": {
-				"supportsUsageInStreaming": false
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"e2ee-qwen-2-5-7b-p": {
@@ -45811,8 +45933,10 @@
 			},
 			"contextWindow": 222222,
 			"maxTokens": 8888,
-			"compat": {
-				"supportsUsageInStreaming": false
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"e2ee-qwen3-30b-a3b-p": {
@@ -45833,8 +45957,10 @@
 			},
 			"contextWindow": 256000,
 			"maxTokens": 8888,
-			"compat": {
-				"supportsUsageInStreaming": false
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"e2ee-qwen3-5-122b-a10b": {
@@ -45855,8 +45981,10 @@
 			},
 			"contextWindow": 222222,
 			"maxTokens": 8888,
-			"compat": {
-				"supportsUsageInStreaming": false
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"e2ee-qwen3-vl-30b-a3b-p": {
@@ -45877,8 +46005,10 @@
 			},
 			"contextWindow": 222222,
 			"maxTokens": 8888,
-			"compat": {
-				"supportsUsageInStreaming": false
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"e2ee-venice-uncensored-24b-p": {
@@ -45899,8 +46029,10 @@
 			},
 			"contextWindow": 222222,
 			"maxTokens": 8888,
-			"compat": {
-				"supportsUsageInStreaming": false
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"gemini-3-1-pro-preview": {
@@ -45921,8 +46053,10 @@
 			},
 			"contextWindow": 1000000,
 			"maxTokens": 8888,
-			"compat": {
-				"supportsUsageInStreaming": false
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"gemini-3-flash-preview": {
@@ -45944,13 +46078,15 @@
 			},
 			"contextWindow": 1048576,
 			"maxTokens": 65536,
-			"compat": {
-				"supportsUsageInStreaming": false
-			},
 			"thinking": {
 				"mode": "effort",
 				"minLevel": "minimal",
 				"maxLevel": "high"
+			},
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"gemini-3-pro-preview": {
@@ -45972,13 +46108,15 @@
 			},
 			"contextWindow": 1000000,
 			"maxTokens": 64000,
-			"compat": {
-				"supportsUsageInStreaming": false
-			},
 			"thinking": {
 				"mode": "effort",
 				"minLevel": "low",
 				"maxLevel": "high"
+			},
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"gemma-4-uncensored": {
@@ -45999,8 +46137,10 @@
 			},
 			"contextWindow": 256000,
 			"maxTokens": 8888,
-			"compat": {
-				"supportsUsageInStreaming": false
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"google-gemma-3-27b-it": {
@@ -46022,8 +46162,10 @@
 			},
 			"contextWindow": 198000,
 			"maxTokens": 8192,
-			"compat": {
-				"supportsUsageInStreaming": false
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"google-gemma-4-26b-a4b-it": {
@@ -46044,8 +46186,10 @@
 			},
 			"contextWindow": 256000,
 			"maxTokens": 8888,
-			"compat": {
-				"supportsUsageInStreaming": false
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"google-gemma-4-31b-it": {
@@ -46066,8 +46210,10 @@
 			},
 			"contextWindow": 256000,
 			"maxTokens": 8888,
-			"compat": {
-				"supportsUsageInStreaming": false
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"google.gemma-4-26b-a4b-it": {
@@ -46088,8 +46234,10 @@
 			},
 			"contextWindow": 222222,
 			"maxTokens": 8888,
-			"compat": {
-				"supportsUsageInStreaming": false
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"google.gemma-4-31b-it": {
@@ -46110,8 +46258,10 @@
 			},
 			"contextWindow": 222222,
 			"maxTokens": 8888,
-			"compat": {
-				"supportsUsageInStreaming": false
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"grok-4-20": {
@@ -46132,8 +46282,10 @@
 			},
 			"contextWindow": 2000000,
 			"maxTokens": 8888,
-			"compat": {
-				"supportsUsageInStreaming": false
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"grok-4-20-beta": {
@@ -46154,8 +46306,10 @@
 			},
 			"contextWindow": 222222,
 			"maxTokens": 8888,
-			"compat": {
-				"supportsUsageInStreaming": false
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"grok-4-20-multi-agent": {
@@ -46176,8 +46330,10 @@
 			},
 			"contextWindow": 2000000,
 			"maxTokens": 8888,
-			"compat": {
-				"supportsUsageInStreaming": false
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"grok-4-20-multi-agent-beta": {
@@ -46198,8 +46354,10 @@
 			},
 			"contextWindow": 222222,
 			"maxTokens": 8888,
-			"compat": {
-				"supportsUsageInStreaming": false
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"grok-41-fast": {
@@ -46221,13 +46379,15 @@
 			},
 			"contextWindow": 1000000,
 			"maxTokens": 8192,
-			"compat": {
-				"supportsUsageInStreaming": false
-			},
 			"thinking": {
 				"mode": "effort",
 				"minLevel": "minimal",
 				"maxLevel": "xhigh"
+			},
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"grok-code-fast-1": {
@@ -46248,13 +46408,15 @@
 			},
 			"contextWindow": 256000,
 			"maxTokens": 10000,
-			"compat": {
-				"supportsUsageInStreaming": false
-			},
 			"thinking": {
 				"mode": "effort",
 				"minLevel": "minimal",
 				"maxLevel": "xhigh"
+			},
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"hermes-3-llama-3.1-405b": {
@@ -46275,8 +46437,10 @@
 			},
 			"contextWindow": 128000,
 			"maxTokens": 8192,
-			"compat": {
-				"supportsUsageInStreaming": false
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"kimi-k2-5": {
@@ -46298,13 +46462,15 @@
 			},
 			"contextWindow": 256000,
 			"maxTokens": 8192,
-			"compat": {
-				"supportsUsageInStreaming": false
-			},
 			"thinking": {
 				"mode": "effort",
 				"minLevel": "minimal",
 				"maxLevel": "xhigh"
+			},
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"kimi-k2-6": {
@@ -46325,8 +46491,10 @@
 			},
 			"contextWindow": 256000,
 			"maxTokens": 8888,
-			"compat": {
-				"supportsUsageInStreaming": false
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"kimi-k2-thinking": {
@@ -46347,13 +46515,15 @@
 			},
 			"contextWindow": 262144,
 			"maxTokens": 262144,
-			"compat": {
-				"supportsUsageInStreaming": false
-			},
 			"thinking": {
 				"mode": "effort",
 				"minLevel": "minimal",
 				"maxLevel": "xhigh"
+			},
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"llama-3.2-3b": {
@@ -46374,8 +46544,10 @@
 			},
 			"contextWindow": 128000,
 			"maxTokens": 8192,
-			"compat": {
-				"supportsUsageInStreaming": false
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"llama-3.3-70b": {
@@ -46396,8 +46568,10 @@
 			},
 			"contextWindow": 128000,
 			"maxTokens": 8192,
-			"compat": {
-				"supportsUsageInStreaming": false
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"mercury-2": {
@@ -46418,8 +46592,10 @@
 			},
 			"contextWindow": 222222,
 			"maxTokens": 8888,
-			"compat": {
-				"supportsUsageInStreaming": false
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"minimax-m21": {
@@ -46440,13 +46616,15 @@
 			},
 			"contextWindow": 198000,
 			"maxTokens": 8192,
-			"compat": {
-				"supportsUsageInStreaming": false
-			},
 			"thinking": {
 				"mode": "effort",
 				"minLevel": "minimal",
 				"maxLevel": "xhigh"
+			},
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"minimax-m25": {
@@ -46467,13 +46645,15 @@
 			},
 			"contextWindow": 198000,
 			"maxTokens": 8192,
-			"compat": {
-				"supportsUsageInStreaming": false
-			},
 			"thinking": {
 				"mode": "effort",
 				"minLevel": "minimal",
 				"maxLevel": "xhigh"
+			},
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"minimax-m27": {
@@ -46494,8 +46674,10 @@
 			},
 			"contextWindow": 222222,
 			"maxTokens": 8888,
-			"compat": {
-				"supportsUsageInStreaming": false
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"mistral-31-24b": {
@@ -46517,8 +46699,10 @@
 			},
 			"contextWindow": 128000,
 			"maxTokens": 8192,
-			"compat": {
-				"supportsUsageInStreaming": false
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"mistral-small-2603": {
@@ -46540,13 +46724,15 @@
 			},
 			"contextWindow": 256000,
 			"maxTokens": 256000,
-			"compat": {
-				"supportsUsageInStreaming": false
-			},
 			"thinking": {
 				"mode": "effort",
 				"minLevel": "minimal",
 				"maxLevel": "xhigh"
+			},
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"mistral-small-3-2-24b-instruct": {
@@ -46567,8 +46753,10 @@
 			},
 			"contextWindow": 256000,
 			"maxTokens": 8888,
-			"compat": {
-				"supportsUsageInStreaming": false
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"nvidia-nemotron-3-nano-30b-a3b": {
@@ -46589,8 +46777,10 @@
 			},
 			"contextWindow": 222222,
 			"maxTokens": 8888,
-			"compat": {
-				"supportsUsageInStreaming": false
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"nvidia-nemotron-cascade-2-30b-a3b": {
@@ -46611,8 +46801,10 @@
 			},
 			"contextWindow": 256000,
 			"maxTokens": 8888,
-			"compat": {
-				"supportsUsageInStreaming": false
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"olafangensan-glm-4.7-flash-heretic": {
@@ -46633,13 +46825,15 @@
 			},
 			"contextWindow": 200000,
 			"maxTokens": 8192,
-			"compat": {
-				"supportsUsageInStreaming": false
-			},
 			"thinking": {
 				"mode": "effort",
 				"minLevel": "minimal",
 				"maxLevel": "xhigh"
+			},
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"openai-gpt-4o-2024-11-20": {
@@ -46660,8 +46854,10 @@
 			},
 			"contextWindow": 222222,
 			"maxTokens": 8888,
-			"compat": {
-				"supportsUsageInStreaming": false
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"openai-gpt-4o-mini-2024-07-18": {
@@ -46682,8 +46878,10 @@
 			},
 			"contextWindow": 222222,
 			"maxTokens": 8888,
-			"compat": {
-				"supportsUsageInStreaming": false
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"openai-gpt-52": {
@@ -46704,13 +46902,15 @@
 			},
 			"contextWindow": 256000,
 			"maxTokens": 8192,
-			"compat": {
-				"supportsUsageInStreaming": false
-			},
 			"thinking": {
 				"mode": "effort",
 				"minLevel": "minimal",
 				"maxLevel": "xhigh"
+			},
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"openai-gpt-52-codex": {
@@ -46732,13 +46932,15 @@
 			},
 			"contextWindow": 400000,
 			"maxTokens": 8192,
-			"compat": {
-				"supportsUsageInStreaming": false
-			},
 			"thinking": {
 				"mode": "effort",
 				"minLevel": "minimal",
 				"maxLevel": "xhigh"
+			},
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"openai-gpt-53-codex": {
@@ -46759,8 +46961,10 @@
 			},
 			"contextWindow": 400000,
 			"maxTokens": 8888,
-			"compat": {
-				"supportsUsageInStreaming": false
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"openai-gpt-54": {
@@ -46781,8 +46985,10 @@
 			},
 			"contextWindow": 1000000,
 			"maxTokens": 8888,
-			"compat": {
-				"supportsUsageInStreaming": false
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"openai-gpt-54-mini": {
@@ -46803,8 +47009,10 @@
 			},
 			"contextWindow": 400000,
 			"maxTokens": 8888,
-			"compat": {
-				"supportsUsageInStreaming": false
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"openai-gpt-54-pro": {
@@ -46825,8 +47033,10 @@
 			},
 			"contextWindow": 1000000,
 			"maxTokens": 8888,
-			"compat": {
-				"supportsUsageInStreaming": false
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"openai-gpt-55": {
@@ -46847,8 +47057,10 @@
 			},
 			"contextWindow": 1000000,
 			"maxTokens": 8888,
-			"compat": {
-				"supportsUsageInStreaming": false
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"openai-gpt-55-pro": {
@@ -46869,8 +47081,10 @@
 			},
 			"contextWindow": 1000000,
 			"maxTokens": 8888,
-			"compat": {
-				"supportsUsageInStreaming": false
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"openai-gpt-oss-120b": {
@@ -46891,8 +47105,10 @@
 			},
 			"contextWindow": 128000,
 			"maxTokens": 8192,
-			"compat": {
-				"supportsUsageInStreaming": false
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"qwen-3-6-plus": {
@@ -46913,8 +47129,10 @@
 			},
 			"contextWindow": 1000000,
 			"maxTokens": 8888,
-			"compat": {
-				"supportsUsageInStreaming": false
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"qwen3-235b-a22b-instruct-2507": {
@@ -46935,8 +47153,10 @@
 			},
 			"contextWindow": 128000,
 			"maxTokens": 8192,
-			"compat": {
-				"supportsUsageInStreaming": false
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"qwen3-235b-a22b-thinking-2507": {
@@ -46957,13 +47177,15 @@
 			},
 			"contextWindow": 128000,
 			"maxTokens": 8192,
-			"compat": {
-				"supportsUsageInStreaming": false
-			},
 			"thinking": {
 				"mode": "effort",
 				"minLevel": "minimal",
 				"maxLevel": "high"
+			},
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"qwen3-4b": {
@@ -46984,13 +47206,15 @@
 			},
 			"contextWindow": 32000,
 			"maxTokens": 8192,
-			"compat": {
-				"supportsUsageInStreaming": false
-			},
 			"thinking": {
 				"mode": "effort",
 				"minLevel": "minimal",
 				"maxLevel": "high"
+			},
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"qwen3-5-35b-a3b": {
@@ -47011,8 +47235,10 @@
 			},
 			"contextWindow": 256000,
 			"maxTokens": 8888,
-			"compat": {
-				"supportsUsageInStreaming": false
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"qwen3-5-397b-a17b": {
@@ -47033,8 +47259,10 @@
 			},
 			"contextWindow": 222222,
 			"maxTokens": 8888,
-			"compat": {
-				"supportsUsageInStreaming": false
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"qwen3-5-9b": {
@@ -47055,8 +47283,10 @@
 			},
 			"contextWindow": 256000,
 			"maxTokens": 8888,
-			"compat": {
-				"supportsUsageInStreaming": false
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"qwen3-6-27b": {
@@ -47077,8 +47307,10 @@
 			},
 			"contextWindow": 256000,
 			"maxTokens": 8888,
-			"compat": {
-				"supportsUsageInStreaming": false
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"qwen3-coder-480b-a35b-instruct": {
@@ -47099,8 +47331,10 @@
 			},
 			"contextWindow": 256000,
 			"maxTokens": 8192,
-			"compat": {
-				"supportsUsageInStreaming": false
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"qwen3-coder-480b-a35b-instruct-turbo": {
@@ -47121,8 +47355,10 @@
 			},
 			"contextWindow": 256000,
 			"maxTokens": 8888,
-			"compat": {
-				"supportsUsageInStreaming": false
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"qwen3-next-80b": {
@@ -47143,8 +47379,10 @@
 			},
 			"contextWindow": 256000,
 			"maxTokens": 8192,
-			"compat": {
-				"supportsUsageInStreaming": false
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"qwen3-vl-235b-a22b": {
@@ -47166,8 +47404,10 @@
 			},
 			"contextWindow": 256000,
 			"maxTokens": 8192,
-			"compat": {
-				"supportsUsageInStreaming": false
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"venice-uncensored": {
@@ -47188,8 +47428,10 @@
 			},
 			"contextWindow": 32000,
 			"maxTokens": 8192,
-			"compat": {
-				"supportsUsageInStreaming": false
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"venice-uncensored-1-2": {
@@ -47210,8 +47452,10 @@
 			},
 			"contextWindow": 222222,
 			"maxTokens": 8888,
-			"compat": {
-				"supportsUsageInStreaming": false
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"venice-uncensored-role-play": {
@@ -47232,8 +47476,10 @@
 			},
 			"contextWindow": 222222,
 			"maxTokens": 8888,
-			"compat": {
-				"supportsUsageInStreaming": false
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"z-ai-glm-5-turbo": {
@@ -47254,8 +47500,10 @@
 			},
 			"contextWindow": 222222,
 			"maxTokens": 8888,
-			"compat": {
-				"supportsUsageInStreaming": false
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"z-ai-glm-5v-turbo": {
@@ -47276,8 +47524,10 @@
 			},
 			"contextWindow": 222222,
 			"maxTokens": 8888,
-			"compat": {
-				"supportsUsageInStreaming": false
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"zai-org-glm-4.6": {
@@ -47298,8 +47548,10 @@
 			},
 			"contextWindow": 222222,
 			"maxTokens": 8888,
-			"compat": {
-				"supportsUsageInStreaming": false
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"zai-org-glm-4.7": {
@@ -47320,13 +47572,15 @@
 			},
 			"contextWindow": 198000,
 			"maxTokens": 8192,
-			"compat": {
-				"supportsUsageInStreaming": false
-			},
 			"thinking": {
 				"mode": "effort",
 				"minLevel": "minimal",
 				"maxLevel": "xhigh"
+			},
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"zai-org-glm-4.7-flash": {
@@ -47347,13 +47601,15 @@
 			},
 			"contextWindow": 128000,
 			"maxTokens": 8192,
-			"compat": {
-				"supportsUsageInStreaming": false
-			},
 			"thinking": {
 				"mode": "effort",
 				"minLevel": "minimal",
 				"maxLevel": "xhigh"
+			},
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"zai-org-glm-5": {
@@ -47374,13 +47630,15 @@
 			},
 			"contextWindow": 198000,
 			"maxTokens": 8192,
-			"compat": {
-				"supportsUsageInStreaming": false
-			},
 			"thinking": {
 				"mode": "effort",
 				"minLevel": "minimal",
 				"maxLevel": "xhigh"
+			},
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		},
 		"zai-org-glm-5-1": {
@@ -47401,8 +47659,10 @@
 			},
 			"contextWindow": 222222,
 			"maxTokens": 8888,
-			"compat": {
-				"supportsUsageInStreaming": false
+			"protocol": {
+				"openai": {
+					"supportsUsageInStreaming": false
+				}
 			}
 		}
 	},

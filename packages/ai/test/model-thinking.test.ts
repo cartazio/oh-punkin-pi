@@ -320,8 +320,8 @@ describe("model thinking runtime helpers", () => {
 			provider: "zai",
 			baseUrl: "https://api.z.ai/v1",
 			reasoning: true,
-			compat: {
-				thinkingFormat: "zai",
+			protocol: {
+				openai: { thinkingFormat: "zai" },
 			},
 			input: ["text"],
 			cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
@@ -340,7 +340,7 @@ describe("model thinking runtime helpers", () => {
 		);
 	});
 
-	it("derives binary-thinking fallback from resolved compat when catalog compat is partial", () => {
+	it("derives binary-thinking fallback from resolved settings when catalog settings are partial", () => {
 		const model = enrichModelThinking({
 			id: "qwen/qwen3-32b",
 			name: "Qwen 3 32B",
@@ -348,8 +348,8 @@ describe("model thinking runtime helpers", () => {
 			provider: "openrouter",
 			baseUrl: "https://openrouter.ai/api/v1",
 			reasoning: true,
-			compat: {
-				supportsToolChoice: true,
+			capabilities: {
+				toolChoice: true,
 			},
 			input: ["text"],
 			cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },

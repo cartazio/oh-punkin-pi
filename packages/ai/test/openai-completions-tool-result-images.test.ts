@@ -1,7 +1,8 @@
 import { describe, expect, it } from "bun:test";
 import { getBundledModel } from "@ohp/ai/models";
 import { convertMessages } from "@ohp/ai/providers/openai-completions";
-import type { AssistantMessage, Context, Model, OpenAICompat, ToolResultMessage, Usage } from "@ohp/ai/types";
+import type { ResolvedOpenAIModelSettings } from "@ohp/ai/providers/openai-completions-compat";
+import type { AssistantMessage, Context, Model, ToolResultMessage, Usage } from "@ohp/ai/types";
 
 const emptyUsage: Usage = {
 	input: 0,
@@ -12,13 +13,13 @@ const emptyUsage: Usage = {
 	cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
 };
 
-const compat: Required<OpenAICompat> = {
+const compat: ResolvedOpenAIModelSettings = {
 	supportsStore: true,
 	supportsDeveloperRole: true,
 	supportsReasoningEffort: true,
 	reasoningEffortMap: {},
 	supportsUsageInStreaming: true,
-	supportsToolChoice: true,
+	toolChoice: true,
 	maxTokensField: "max_completion_tokens",
 	requiresToolResultName: false,
 	requiresAssistantAfterToolResult: false,
@@ -28,10 +29,10 @@ const compat: Required<OpenAICompat> = {
 	reasoningContentField: "reasoning_content",
 	requiresReasoningContentForToolCalls: false,
 	requiresAssistantContentForToolCalls: false,
-	openRouterRouting: {},
-	vercelGatewayRouting: {},
+	openrouter: {},
+	vercel: {},
 	extraBody: {},
-	supportsStrictMode: true,
+	strictToolSchemas: true,
 };
 
 function buildToolResult(toolCallId: string, timestamp: number): ToolResultMessage {

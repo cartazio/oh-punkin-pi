@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "bun:test";
 import { getBundledModel } from "@ohp/ai/models";
 import { streamOpenAICompletions } from "@ohp/ai/providers/openai-completions";
 import { streamOpenAIResponses } from "@ohp/ai/providers/openai-responses";
-import type { Context, Model, OpenAICompat, Tool } from "@ohp/ai/types";
+import type { Context, Model, Tool } from "@ohp/ai/types";
 import { Type } from "@sinclair/typebox";
 
 const originalFetch = global.fetch;
@@ -74,7 +74,7 @@ describe("OpenAI tool strict mode", () => {
 		const model: Model<"openai-completions"> = {
 			...getBundledModel("openai", "gpt-4o-mini"),
 			api: "openai-completions",
-			compat: { supportsStrictMode: false } satisfies OpenAICompat,
+			capabilities: { strictToolSchemas: false },
 		};
 
 		const payload = (await captureCompletionsPayload(model)) as {

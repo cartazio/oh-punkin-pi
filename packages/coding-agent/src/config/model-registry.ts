@@ -31,6 +31,7 @@ import { type ConfigError, ConfigFile } from "../config";
 import { parseModelString } from "../config/model-resolver";
 import { isValidThemeColor, type ThemeColor } from "../modes/theme/theme";
 import type { AuthStorage, OAuthCredential } from "../session/auth-storage";
+import { findOpenRouterModelModifierMatch } from "./openrouter-model-modifiers";
 import { type Settings, settings } from "./settings";
 
 export const kNoAuth = "N/A";
@@ -117,7 +118,7 @@ const VercelGatewayRoutingSchema = Type.Object({
 	order: Type.Optional(Type.Array(Type.String())),
 });
 
-// Schema for OpenAI compatibility settings
+// Schema for OpenAI-compatible protocol/request settings
 const ReasoningEffortMapSchema = Type.Object({
 	minimal: Type.Optional(Type.String()),
 	low: Type.Optional(Type.String()),
@@ -126,7 +127,7 @@ const ReasoningEffortMapSchema = Type.Object({
 	xhigh: Type.Optional(Type.String()),
 });
 
-const OpenAICompatSchema = Type.Object({
+const OpenAIProtocolSchema = Type.Object({
 	supportsStore: Type.Optional(Type.Boolean()),
 	supportsDeveloperRole: Type.Optional(Type.Boolean()),
 	supportsReasoningEffort: Type.Optional(Type.Boolean()),
@@ -136,6 +137,7 @@ const OpenAICompatSchema = Type.Object({
 	requiresToolResultName: Type.Optional(Type.Boolean()),
 	requiresAssistantAfterToolResult: Type.Optional(Type.Boolean()),
 	requiresThinkingAsText: Type.Optional(Type.Boolean()),
+	requiresMistralToolIds: Type.Optional(Type.Boolean()),
 	thinkingFormat: Type.Optional(
 		Type.Union([
 			Type.Literal("openai"),
@@ -145,10 +147,27 @@ const OpenAICompatSchema = Type.Object({
 			Type.Literal("qwen-chat-template"),
 		]),
 	),
-	openRouterRouting: Type.Optional(OpenRouterRoutingSchema),
-	vercelGatewayRouting: Type.Optional(VercelGatewayRoutingSchema),
+	reasoningContentField: Type.Optional(
+		Type.Union([Type.Literal("reasoning_content"), Type.Literal("reasoning"), Type.Literal("reasoning_text")]),
+	),
+	requiresReasoningContentForToolCalls: Type.Optional(Type.Boolean()),
+	requiresAssistantContentForToolCalls: Type.Optional(Type.Boolean()),
 	extraBody: Type.Optional(Type.Record(Type.String(), Type.Unknown())),
-	supportsStrictMode: Type.Optional(Type.Boolean()),
+});
+
+const ModelProtocolSchema = Type.Object({
+	openai: Type.Optional(OpenAIProtocolSchema),
+});
+
+const ModelCapabilitiesSchema = Type.Object({
+	toolChoice: Type.Optional(Type.Boolean()),
+	strictToolSchemas: Type.Optional(Type.Boolean()),
+	supportedParameters: Type.Optional(Type.Array(Type.String())),
+});
+
+const ModelRoutingSchema = Type.Object({
+	openrouter: Type.Optional(OpenRouterRoutingSchema),
+	vercel: Type.Optional(VercelGatewayRoutingSchema),
 });
 
 const EffortSchema = Type.Union([
@@ -204,8 +223,11 @@ const ModelDefinitionSchema = Type.Object({
 	premiumMultiplier: Type.Optional(Type.Number()),
 	contextWindow: Type.Optional(Type.Number()),
 	maxTokens: Type.Optional(Type.Number()),
+	maxInputMessageTokens: Type.Optional(Type.Number()),
 	headers: Type.Optional(Type.Record(Type.String(), Type.String())),
-	compat: Type.Optional(OpenAICompatSchema),
+	protocol: Type.Optional(ModelProtocolSchema),
+	capabilities: Type.Optional(ModelCapabilitiesSchema),
+	routing: Type.Optional(ModelRoutingSchema),
 	contextPromotionTarget: Type.Optional(Type.String({ minLength: 1 })),
 });
 
@@ -226,8 +248,11 @@ const ModelOverrideSchema = Type.Object({
 	premiumMultiplier: Type.Optional(Type.Number()),
 	contextWindow: Type.Optional(Type.Number()),
 	maxTokens: Type.Optional(Type.Number()),
+	maxInputMessageTokens: Type.Optional(Type.Number()),
 	headers: Type.Optional(Type.Record(Type.String(), Type.String())),
-	compat: Type.Optional(OpenAICompatSchema),
+	protocol: Type.Optional(ModelProtocolSchema),
+	capabilities: Type.Optional(ModelCapabilitiesSchema),
+	routing: Type.Optional(ModelRoutingSchema),
 	contextPromotionTarget: Type.Optional(Type.String({ minLength: 1 })),
 });
 
@@ -254,7 +279,9 @@ const ProviderConfigSchema = Type.Object({
 		]),
 	),
 	headers: Type.Optional(Type.Record(Type.String(), Type.String())),
-	compat: Type.Optional(OpenAICompatSchema),
+	protocol: Type.Optional(ModelProtocolSchema),
+	capabilities: Type.Optional(ModelCapabilitiesSchema),
+	routing: Type.Optional(ModelRoutingSchema),
 	authHeader: Type.Optional(Type.Boolean()),
 	auth: Type.Optional(ProviderAuthSchema),
 	discovery: Type.Optional(ProviderDiscoverySchema),
@@ -278,6 +305,7 @@ interface ProviderValidationModel {
 	api?: Api;
 	contextWindow?: number;
 	maxTokens?: number;
+	maxInputMessageTokens?: number;
 }
 
 interface ProviderValidationConfig {
@@ -287,7 +315,9 @@ interface ProviderValidationConfig {
 	auth?: ProviderAuthMode;
 	oauthConfigured?: boolean;
 	discovery?: ProviderDiscovery;
-	compat?: Model<Api>["compat"];
+	protocol?: Model<Api>["protocol"];
+	capabilities?: Model<Api>["capabilities"];
+	routing?: Model<Api>["routing"];
 	modelOverrides?: Record<string, unknown>;
 	models: ProviderValidationModel[];
 }
@@ -303,9 +333,16 @@ function validateProviderConfiguration(
 	if (models.length === 0) {
 		if (mode === "models-config") {
 			const hasModelOverrides = config.modelOverrides && Object.keys(config.modelOverrides).length > 0;
-			if (!config.baseUrl && !config.compat && !hasModelOverrides && !config.discovery) {
+			if (
+				!config.baseUrl &&
+				!config.protocol &&
+				!config.capabilities &&
+				!config.routing &&
+				!hasModelOverrides &&
+				!config.discovery
+			) {
 				throw new Error(
-					`Provider ${providerName}: must specify "baseUrl", "compat", "modelOverrides", "discovery", or "models"`,
+					`Provider ${providerName}: must specify "baseUrl", "protocol", "capabilities", "routing", "modelOverrides", "discovery", or "models"`,
 				);
 			}
 		}
@@ -348,6 +385,9 @@ function validateProviderConfiguration(
 			if (modelDef.maxTokens !== undefined && modelDef.maxTokens <= 0) {
 				throw new Error(`Provider ${providerName}, model ${modelDef.id}: invalid maxTokens`);
 			}
+			if (modelDef.maxInputMessageTokens !== undefined && modelDef.maxInputMessageTokens <= 0) {
+				throw new Error(`Provider ${providerName}, model ${modelDef.id}: invalid maxInputMessageTokens`);
+			}
 		}
 	}
 }
@@ -364,7 +404,9 @@ export const ModelsConfigFile = new ConfigFile<ModelsConfig>("models", ModelsCon
 					api: providerConfig.api as Api | undefined,
 					auth: (providerConfig.auth ?? "apiKey") as ProviderAuthMode,
 					discovery: providerConfig.discovery as ProviderDiscovery | undefined,
-					compat: providerConfig.compat,
+					protocol: providerConfig.protocol,
+					capabilities: providerConfig.capabilities,
+					routing: providerConfig.routing,
 					modelOverrides: providerConfig.modelOverrides,
 					models: (providerConfig.models ?? []) as ProviderValidationModel[],
 				},
@@ -374,12 +416,14 @@ export const ModelsConfigFile = new ConfigFile<ModelsConfig>("models", ModelsCon
 	},
 );
 
-/** Provider override config (baseUrl, headers, apiKey, compat) without custom models */
+/** Provider override config (baseUrl, headers, apiKey, protocol/capabilities/routing) without custom models */
 interface ProviderOverride {
 	baseUrl?: string;
 	headers?: Record<string, string>;
 	apiKey?: string;
-	compat?: Model<Api>["compat"];
+	protocol?: Model<Api>["protocol"];
+	capabilities?: Model<Api>["capabilities"];
+	routing?: Model<Api>["routing"];
 }
 
 interface DiscoveryProviderConfig {
@@ -387,7 +431,9 @@ interface DiscoveryProviderConfig {
 	api: Api;
 	baseUrl?: string;
 	headers?: Record<string, string>;
-	compat?: Model<Api>["compat"];
+	protocol?: Model<Api>["protocol"];
+	capabilities?: Model<Api>["capabilities"];
+	routing?: Model<Api>["routing"];
 	discovery: ProviderDiscovery;
 	optional?: boolean;
 }
@@ -532,25 +578,46 @@ function resolveOAuthAccountIdForAccessToken(
 	return undefined;
 }
 
-function mergeCompat(
-	baseCompat: Model<Api>["compat"],
-	overrideCompat: ModelOverride["compat"],
-): Model<Api>["compat"] | undefined {
-	if (!overrideCompat) return baseCompat;
-	const base = baseCompat ?? {};
-	const override = overrideCompat;
-	const merged: NonNullable<Model<Api>["compat"]> = { ...base, ...override };
-	if (baseCompat?.reasoningEffortMap || overrideCompat.reasoningEffortMap) {
-		merged.reasoningEffortMap = { ...baseCompat?.reasoningEffortMap, ...overrideCompat.reasoningEffortMap };
+function mergeProtocol(
+	baseProtocol: Model<Api>["protocol"],
+	overrideProtocol: ModelOverride["protocol"],
+): Model<Api>["protocol"] | undefined {
+	if (!overrideProtocol) return baseProtocol;
+	const merged: NonNullable<Model<Api>["protocol"]> = { ...baseProtocol, ...overrideProtocol };
+	if (baseProtocol?.openai || overrideProtocol.openai) {
+		merged.openai = { ...baseProtocol?.openai, ...overrideProtocol.openai };
+		if (baseProtocol?.openai?.reasoningEffortMap || overrideProtocol.openai?.reasoningEffortMap) {
+			merged.openai.reasoningEffortMap = {
+				...baseProtocol?.openai?.reasoningEffortMap,
+				...overrideProtocol.openai?.reasoningEffortMap,
+			};
+		}
+		if (baseProtocol?.openai?.extraBody || overrideProtocol.openai?.extraBody) {
+			merged.openai.extraBody = { ...baseProtocol?.openai?.extraBody, ...overrideProtocol.openai?.extraBody };
+		}
 	}
-	if (baseCompat?.openRouterRouting || overrideCompat.openRouterRouting) {
-		merged.openRouterRouting = { ...baseCompat?.openRouterRouting, ...overrideCompat.openRouterRouting };
+	return merged;
+}
+
+function mergeCapabilities(
+	baseCapabilities: Model<Api>["capabilities"],
+	overrideCapabilities: ModelOverride["capabilities"],
+): Model<Api>["capabilities"] | undefined {
+	if (!overrideCapabilities) return baseCapabilities;
+	return { ...baseCapabilities, ...overrideCapabilities };
+}
+
+function mergeRouting(
+	baseRouting: Model<Api>["routing"],
+	overrideRouting: ModelOverride["routing"],
+): Model<Api>["routing"] | undefined {
+	if (!overrideRouting) return baseRouting;
+	const merged: NonNullable<Model<Api>["routing"]> = { ...baseRouting, ...overrideRouting };
+	if (baseRouting?.openrouter || overrideRouting.openrouter) {
+		merged.openrouter = { ...baseRouting?.openrouter, ...overrideRouting.openrouter };
 	}
-	if (baseCompat?.vercelGatewayRouting || overrideCompat.vercelGatewayRouting) {
-		merged.vercelGatewayRouting = { ...baseCompat?.vercelGatewayRouting, ...overrideCompat.vercelGatewayRouting };
-	}
-	if (baseCompat?.extraBody || overrideCompat.extraBody) {
-		merged.extraBody = { ...baseCompat?.extraBody, ...overrideCompat.extraBody };
+	if (baseRouting?.vercel || overrideRouting.vercel) {
+		merged.vercel = { ...baseRouting?.vercel, ...overrideRouting.vercel };
 	}
 	return merged;
 }
@@ -563,6 +630,7 @@ function applyModelOverride(model: Model<Api>, override: ModelOverride): Model<A
 	if (override.input !== undefined) result.input = override.input as ("text" | "image")[];
 	if (override.contextWindow !== undefined) result.contextWindow = override.contextWindow;
 	if (override.maxTokens !== undefined) result.maxTokens = override.maxTokens;
+	if (override.maxInputMessageTokens !== undefined) result.maxInputMessageTokens = override.maxInputMessageTokens;
 	if (override.contextPromotionTarget !== undefined) result.contextPromotionTarget = override.contextPromotionTarget;
 	if (override.premiumMultiplier !== undefined) result.premiumMultiplier = override.premiumMultiplier;
 	if (override.cost) {
@@ -576,7 +644,9 @@ function applyModelOverride(model: Model<Api>, override: ModelOverride): Model<A
 	if (override.headers) {
 		result.headers = { ...model.headers, ...override.headers };
 	}
-	result.compat = mergeCompat(model.compat, override.compat);
+	result.protocol = mergeProtocol(model.protocol, override.protocol);
+	result.capabilities = mergeCapabilities(model.capabilities, override.capabilities);
+	result.routing = mergeRouting(model.routing, override.routing);
 	return enrichModelThinking(result);
 }
 
@@ -591,8 +661,11 @@ interface CustomModelDefinitionLike {
 	cost?: { input: number; output: number; cacheRead: number; cacheWrite: number };
 	contextWindow?: number;
 	maxTokens?: number;
+	maxInputMessageTokens?: number;
 	headers?: Record<string, string>;
-	compat?: Model<Api>["compat"];
+	protocol?: Model<Api>["protocol"];
+	capabilities?: Model<Api>["capabilities"];
+	routing?: Model<Api>["routing"];
 	contextPromotionTarget?: string;
 	premiumMultiplier?: number;
 }
@@ -613,8 +686,11 @@ type CustomModelOverlay = {
 	cost?: { input: number; output: number; cacheRead: number; cacheWrite: number };
 	contextWindow?: number;
 	maxTokens?: number;
+	maxInputMessageTokens?: number;
 	headers?: Record<string, string>;
-	compat?: Model<Api>["compat"];
+	protocol?: Model<Api>["protocol"];
+	capabilities?: Model<Api>["capabilities"];
+	routing?: Model<Api>["routing"];
 	contextPromotionTarget?: string;
 	premiumMultiplier?: number;
 };
@@ -642,7 +718,9 @@ function buildCustomModelOverlay(
 	providerHeaders: Record<string, string> | undefined,
 	providerApiKey: string | undefined,
 	authHeader: boolean | undefined,
-	providerCompat: Model<Api>["compat"] | undefined,
+	providerProtocol: Model<Api>["protocol"] | undefined,
+	providerCapabilities: Model<Api>["capabilities"] | undefined,
+	providerRouting: Model<Api>["routing"] | undefined,
 	modelDef: CustomModelDefinitionLike,
 ): CustomModelOverlay | undefined {
 	const api = modelDef.api ?? providerApi;
@@ -659,8 +737,11 @@ function buildCustomModelOverlay(
 		cost: modelDef.cost,
 		contextWindow: modelDef.contextWindow,
 		maxTokens: modelDef.maxTokens,
+		maxInputMessageTokens: modelDef.maxInputMessageTokens,
 		headers: mergeCustomModelHeaders(providerHeaders, modelDef.headers, authHeader, providerApiKey),
-		compat: mergeCompat(providerCompat, modelDef.compat),
+		protocol: mergeProtocol(providerProtocol, modelDef.protocol),
+		capabilities: mergeCapabilities(providerCapabilities, modelDef.capabilities),
+		routing: mergeRouting(providerRouting, modelDef.routing),
 		contextPromotionTarget: modelDef.contextPromotionTarget,
 		premiumMultiplier: modelDef.premiumMultiplier,
 	};
@@ -690,8 +771,11 @@ function finalizeCustomModel(model: CustomModelOverlay, options: CustomModelBuil
 		cost,
 		contextWindow: resolvedModel.contextWindow ?? (options.useDefaults ? 128000 : undefined),
 		maxTokens: resolvedModel.maxTokens ?? (options.useDefaults ? 16384 : undefined),
+		maxInputMessageTokens: resolvedModel.maxInputMessageTokens,
 		headers: resolvedModel.headers,
-		compat: resolvedModel.compat,
+		protocol: resolvedModel.protocol,
+		capabilities: resolvedModel.capabilities,
+		routing: resolvedModel.routing,
 		contextPromotionTarget: resolvedModel.contextPromotionTarget,
 		premiumMultiplier: resolvedModel.premiumMultiplier,
 	} as Model<Api>);
@@ -704,7 +788,9 @@ function buildCustomModel(
 	providerHeaders: Record<string, string> | undefined,
 	providerApiKey: string | undefined,
 	authHeader: boolean | undefined,
-	providerCompat: Model<Api>["compat"] | undefined,
+	providerProtocol: Model<Api>["protocol"] | undefined,
+	providerCapabilities: Model<Api>["capabilities"] | undefined,
+	providerRouting: Model<Api>["routing"] | undefined,
 	modelDef: CustomModelDefinitionLike,
 	options: CustomModelBuildOptions,
 ): Model<Api> | undefined {
@@ -715,7 +801,9 @@ function buildCustomModel(
 		providerHeaders,
 		providerApiKey,
 		authHeader,
-		providerCompat,
+		providerProtocol,
+		providerCapabilities,
+		providerRouting,
 		modelDef,
 	);
 	if (!model) return undefined;
@@ -875,7 +963,9 @@ export class ModelRegistry {
 					...m,
 					baseUrl: providerOverride.baseUrl ?? m.baseUrl,
 					headers: providerOverride.headers ? { ...m.headers, ...providerOverride.headers } : m.headers,
-					compat: mergeCompat(m.compat, providerOverride.compat),
+					protocol: mergeProtocol(m.protocol, providerOverride.protocol),
+					capabilities: mergeCapabilities(m.capabilities, providerOverride.capabilities),
+					routing: mergeRouting(m.routing, providerOverride.routing),
 				};
 			});
 		});
@@ -916,11 +1006,14 @@ export class ModelRegistry {
 					cost: customModel.cost ?? existingModel.cost,
 					contextWindow: customModel.contextWindow ?? existingModel.contextWindow,
 					maxTokens: customModel.maxTokens ?? existingModel.maxTokens,
+					maxInputMessageTokens: customModel.maxInputMessageTokens ?? existingModel.maxInputMessageTokens,
 					// Same-id custom definitions replace bundled transport behavior. Provider-level
-					// headers/compat were already folded into customModel during parsing; do not
+					// headers/protocol/capabilities/routing were already folded into customModel during parsing; do not
 					// re-merge bundled transport metadata here.
 					headers: customModel.headers,
-					compat: customModel.compat,
+					protocol: customModel.protocol,
+					capabilities: customModel.capabilities,
+					routing: customModel.routing,
 					contextPromotionTarget: customModel.contextPromotionTarget ?? existingModel.contextPromotionTarget,
 					premiumMultiplier: customModel.premiumMultiplier ?? existingModel.premiumMultiplier,
 				} as Model<Api>);
@@ -947,7 +1040,7 @@ export class ModelRegistry {
 			}
 			const models = this.#applyProviderModelOverrides(
 				providerConfig.provider,
-				this.#applyProviderCompat(providerConfig.compat, cache.models),
+				this.#applyProviderMixins(providerConfig, cache.models),
 			);
 			cachedModels.push(...models);
 			this.#providerDiscoveryStates.set(providerConfig.provider, {
@@ -962,9 +1055,14 @@ export class ModelRegistry {
 		return cachedModels;
 	}
 
-	#applyProviderCompat(compat: Model<Api>["compat"] | undefined, models: Model<Api>[]): Model<Api>[] {
-		if (!compat) return models;
-		return models.map(model => ({ ...model, compat: mergeCompat(model.compat, compat) }));
+	#applyProviderMixins(providerConfig: DiscoveryProviderConfig, models: Model<Api>[]): Model<Api>[] {
+		if (!providerConfig.protocol && !providerConfig.capabilities && !providerConfig.routing) return models;
+		return models.map(model => ({
+			...model,
+			protocol: mergeProtocol(model.protocol, providerConfig.protocol),
+			capabilities: mergeCapabilities(model.capabilities, providerConfig.capabilities),
+			routing: mergeRouting(model.routing, providerConfig.routing),
+		}));
 	}
 
 	#addImplicitDiscoverableProviders(configuredProviders: Set<string>): void {
@@ -1036,13 +1134,22 @@ export class ModelRegistry {
 		const configuredProviders = new Set(Object.keys(value.providers));
 
 		for (const [providerName, providerConfig] of Object.entries(value.providers)) {
-			// Always set overrides when baseUrl/headers/apiKey/compat are present
-			if (providerConfig.baseUrl || providerConfig.headers || providerConfig.apiKey || providerConfig.compat) {
+			// Always set overrides when baseUrl/headers/apiKey/protocol/capabilities/routing are present
+			if (
+				providerConfig.baseUrl ||
+				providerConfig.headers ||
+				providerConfig.apiKey ||
+				providerConfig.protocol ||
+				providerConfig.capabilities ||
+				providerConfig.routing
+			) {
 				overrides.set(providerName, {
 					baseUrl: providerConfig.baseUrl,
 					headers: providerConfig.headers,
 					apiKey: providerConfig.apiKey,
-					compat: providerConfig.compat,
+					protocol: providerConfig.protocol,
+					capabilities: providerConfig.capabilities,
+					routing: providerConfig.routing,
 				});
 			}
 
@@ -1057,7 +1164,9 @@ export class ModelRegistry {
 					api: providerConfig.api as Api,
 					baseUrl: providerConfig.baseUrl,
 					headers: providerConfig.headers,
-					compat: providerConfig.compat,
+					protocol: providerConfig.protocol,
+					capabilities: providerConfig.capabilities,
+					routing: providerConfig.routing,
 					discovery: providerConfig.discovery,
 					optional: false,
 				});
@@ -1201,10 +1310,7 @@ export class ModelRegistry {
 		if (discoveryError) {
 			this.#warnProviderDiscoveryFailure(providerConfig, discoveryError);
 		}
-		return this.#applyProviderModelOverrides(
-			providerId,
-			this.#applyProviderCompat(providerConfig.compat, result.models),
-		);
+		return this.#applyProviderModelOverrides(providerId, this.#applyProviderMixins(providerConfig, result.models));
 	}
 
 	#discoverModelsByProviderType(providerConfig: DiscoveryProviderConfig): Promise<Model<Api>[]> {
@@ -1498,10 +1604,12 @@ export class ModelRegistry {
 					contextWindow: serverMetadata?.contextWindow ?? 128000,
 					maxTokens: Math.min(serverMetadata?.contextWindow ?? Number.POSITIVE_INFINITY, 8192),
 					headers,
-					compat: {
-						supportsStore: false,
-						supportsDeveloperRole: false,
-						supportsReasoningEffort: false,
+					protocol: {
+						openai: {
+							supportsStore: false,
+							supportsDeveloperRole: false,
+							supportsReasoningEffort: false,
+						},
 					},
 				}),
 			);
@@ -1545,10 +1653,12 @@ export class ModelRegistry {
 					contextWindow: 128000,
 					maxTokens: 8192,
 					headers,
-					compat: {
-						supportsStore: false,
-						supportsDeveloperRole: false,
-						supportsReasoningEffort: false,
+					protocol: {
+						openai: {
+							supportsStore: false,
+							supportsDeveloperRole: false,
+							supportsReasoningEffort: false,
+						},
 					},
 				}),
 			);
@@ -1655,7 +1765,9 @@ export class ModelRegistry {
 					providerConfig.headers,
 					providerConfig.apiKey,
 					providerConfig.authHeader,
-					providerConfig.compat,
+					providerConfig.protocol,
+					providerConfig.capabilities,
+					providerConfig.routing,
 					modelDef as CustomModelDefinitionLike,
 				);
 				if (!model) continue;
@@ -1701,7 +1813,10 @@ export class ModelRegistry {
 	 * Find a model by provider and ID.
 	 */
 	find(provider: string, modelId: string): Model<Api> | undefined {
-		return this.#models.find(m => m.provider === provider && m.id === modelId);
+		const exact = this.#models.find(m => m.provider === provider && m.id === modelId);
+		if (exact) return exact;
+
+		return findOpenRouterModelModifierMatch(provider, modelId, this.#models);
 	}
 
 	/**
@@ -1824,7 +1939,9 @@ export class ModelRegistry {
 					config.headers,
 					config.apiKey,
 					config.authHeader,
-					config.compat,
+					config.protocol,
+					config.capabilities,
+					config.routing,
 					modelDef as CustomModelDefinitionLike,
 					{ useDefaults: true },
 				);
@@ -1889,7 +2006,9 @@ export interface ProviderConfigInput {
 	api?: Api;
 	streamSimple?: (model: Model<Api>, context: Context, options?: SimpleStreamOptions) => AssistantMessageEventStream;
 	headers?: Record<string, string>;
-	compat?: Model<Api>["compat"];
+	protocol?: Model<Api>["protocol"];
+	capabilities?: Model<Api>["capabilities"];
+	routing?: Model<Api>["routing"];
 	authHeader?: boolean;
 	oauth?: {
 		name: string;
@@ -1909,8 +2028,11 @@ export interface ProviderConfigInput {
 		cost: { input: number; output: number; cacheRead: number; cacheWrite: number };
 		contextWindow: number;
 		maxTokens: number;
+		maxInputMessageTokens?: number;
 		headers?: Record<string, string>;
-		compat?: Model<Api>["compat"];
+		protocol?: Model<Api>["protocol"];
+		capabilities?: Model<Api>["capabilities"];
+		routing?: Model<Api>["routing"];
 		contextPromotionTarget?: string;
 		premiumMultiplier?: number;
 	}>;

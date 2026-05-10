@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { Effort, type OpenAICompat, type ThinkingConfig } from "@ohp/ai";
+import { Effort, type ThinkingConfig } from "@ohp/ai";
 import { kNoAuth, MODEL_ROLES, ModelRegistry } from "@ohp/coding-agent/config/model-registry";
 import { _resetSettingsForTest, Settings } from "@ohp/coding-agent/config/settings";
 import { AuthStorage } from "@ohp/coding-agent/session/auth-storage";
@@ -47,6 +47,7 @@ describe("ModelRegistry", () => {
 			cost: { input: number; output: number; cacheRead: number; cacheWrite: number };
 			contextWindow: number;
 			maxTokens: number;
+			maxInputMessageTokens?: number;
 		}>;
 	};
 
@@ -59,6 +60,7 @@ describe("ModelRegistry", () => {
 			reasoning?: boolean;
 			thinking?: ThinkingConfig;
 			contextWindow?: number;
+			maxInputMessageTokens?: number;
 		}>,
 		api: string = "anthropic-messages",
 	) {
@@ -75,6 +77,7 @@ describe("ModelRegistry", () => {
 				cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
 				contextWindow: m.contextWindow ?? 100000,
 				maxTokens: 8000,
+				maxInputMessageTokens: m.maxInputMessageTokens,
 			})),
 		};
 	}
@@ -209,14 +212,14 @@ describe("ModelRegistry", () => {
 		});
 	});
 
-	describe("provider compat overrides", () => {
-		test("provider-level compat applies to built-in models", () => {
+	describe("provider mixin overrides", () => {
+		test("provider-level protocol/capabilities apply to built-in models", () => {
 			writeRawModelsJson({
 				openrouter: {
-					compat: {
-						supportsUsageInStreaming: false,
-						supportsStrictMode: false,
+					protocol: {
+						openai: { supportsUsageInStreaming: false },
 					},
+					capabilities: { strictToolSchemas: false },
 				},
 			});
 
@@ -224,20 +227,22 @@ describe("ModelRegistry", () => {
 			const models = getModelsForProvider(registry, "openrouter");
 			expect(models.length).toBeGreaterThan(0);
 			for (const model of models) {
-				expect(model.compat?.supportsUsageInStreaming).toBe(false);
-				expect(model.compat?.supportsStrictMode).toBe(false);
+				expect(model.protocol?.openai?.supportsUsageInStreaming).toBe(false);
+				expect(model.capabilities?.strictToolSchemas).toBe(false);
 			}
 		});
 
-		test("provider-level compat applies to custom models", () => {
+		test("provider-level protocol applies to custom models", () => {
 			writeRawModelsJson({
 				demo: {
 					baseUrl: "https://example.com/v1",
 					apiKey: "DEMO_KEY",
 					api: "openai-completions",
-					compat: {
-						supportsUsageInStreaming: false,
-						maxTokensField: "max_tokens",
+					protocol: {
+						openai: {
+							supportsUsageInStreaming: false,
+							maxTokensField: "max_tokens",
+						},
 					},
 					models: [
 						{
@@ -254,19 +259,21 @@ describe("ModelRegistry", () => {
 
 			const registry = new ModelRegistry(authStorage, modelsJsonPath);
 			const model = registry.find("demo", "demo-model");
-			expect(model?.compat?.supportsUsageInStreaming).toBe(false);
-			expect(model?.compat?.maxTokensField).toBe("max_tokens");
+			expect(model?.protocol?.openai?.supportsUsageInStreaming).toBe(false);
+			expect(model?.protocol?.openai?.maxTokensField).toBe("max_tokens");
 		});
 
-		test("model-level compat overrides provider-level compat for custom models", () => {
+		test("model-level protocol overrides provider-level protocol for custom models", () => {
 			writeRawModelsJson({
 				demo: {
 					baseUrl: "https://example.com/v1",
 					apiKey: "DEMO_KEY",
 					api: "openai-completions",
-					compat: {
-						supportsUsageInStreaming: false,
-						maxTokensField: "max_tokens",
+					protocol: {
+						openai: {
+							supportsUsageInStreaming: false,
+							maxTokensField: "max_tokens",
+						},
 					},
 					models: [
 						{
@@ -276,9 +283,11 @@ describe("ModelRegistry", () => {
 							cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
 							contextWindow: 1000,
 							maxTokens: 100,
-							compat: {
-								supportsUsageInStreaming: true,
-								maxTokensField: "max_completion_tokens",
+							protocol: {
+								openai: {
+									supportsUsageInStreaming: true,
+									maxTokensField: "max_completion_tokens",
+								},
 							},
 						},
 					],
@@ -287,8 +296,8 @@ describe("ModelRegistry", () => {
 
 			const registry = new ModelRegistry(authStorage, modelsJsonPath);
 			const model = registry.find("demo", "demo-model");
-			expect(model?.compat?.supportsUsageInStreaming).toBe(true);
-			expect(model?.compat?.maxTokensField).toBe("max_completion_tokens");
+			expect(model?.protocol?.openai?.supportsUsageInStreaming).toBe(true);
+			expect(model?.protocol?.openai?.maxTokensField).toBe("max_completion_tokens");
 		});
 	});
 
@@ -323,6 +332,21 @@ describe("ModelRegistry", () => {
 
 			expect(sonnetModels).toHaveLength(1);
 			expect(sonnetModels[0].baseUrl).toBe("https://my-proxy.example.com/v1");
+		});
+
+		test("custom model preserves max input message limit", () => {
+			writeModelsJson({
+				openrouter: providerConfig(
+					"https://my-proxy.example.com/v1",
+					[{ id: "anthropic/claude-sonnet-4", maxInputMessageTokens: 64000 }],
+					"openai-completions",
+				),
+			});
+
+			const registry = new ModelRegistry(authStorage, modelsJsonPath);
+			const model = registry.find("openrouter", "anthropic/claude-sonnet-4");
+
+			expect(model?.maxInputMessageTokens).toBe(64000);
 		});
 
 		test("custom same-id replacement does not keep bundled headers", () => {
@@ -579,7 +603,7 @@ describe("ModelRegistry", () => {
 			expect(model?.baseUrl).toBe("http://127.0.0.1:8080");
 		});
 
-		test("discoverable custom compat survives refresh", async () => {
+		test("discoverable custom protocol survives refresh", async () => {
 			writeRawModelsJson({
 				openai: {
 					baseUrl: "https://my-proxy.example.com/v1",
@@ -588,20 +612,20 @@ describe("ModelRegistry", () => {
 					models: [
 						{
 							id: "gpt-5.4",
-							compat: {
-								extraBody: { source: "proxy" },
+							protocol: {
+								openai: { extraBody: { source: "proxy" } },
 							},
 						},
 					],
 				},
 			});
 			const registry = new ModelRegistry(authStorage, modelsJsonPath);
-			expect(registry.find("openai", "gpt-5.4")?.compat?.extraBody).toEqual({ source: "proxy" });
+			expect(registry.find("openai", "gpt-5.4")?.protocol?.openai?.extraBody).toEqual({ source: "proxy" });
 
 			using _hook = mockOpenAiCompatibleModels("https://my-proxy.example.com/v1/models", ["gpt-5.4"]);
 			await registry.refreshProvider("openai", "online");
 
-			expect(registry.find("openai", "gpt-5.4")?.compat?.extraBody).toEqual({ source: "proxy" });
+			expect(registry.find("openai", "gpt-5.4")?.protocol?.openai?.extraBody).toEqual({ source: "proxy" });
 		});
 
 		test("modelOverrides still apply after discoverable refresh", async () => {
@@ -660,14 +684,14 @@ describe("ModelRegistry", () => {
 			expect(discovered?.headers?.["X-Model"]).toBeUndefined();
 		});
 
-		test("same-id replacement uses configured compat without bundled compat leak", () => {
+		test("same-id replacement uses configured protocol without bundled protocol leak", () => {
 			writeRawModelsJson({
 				"minimax-code": {
 					baseUrl: "https://proxy.example.com/v1",
 					apiKey: "TEST_KEY",
 					api: "openai-completions",
-					compat: {
-						extraBody: { source: "proxy" },
+					protocol: {
+						openai: { extraBody: { source: "proxy" } },
 					},
 					models: [{ id: "MiniMax-M2.5" }],
 				},
@@ -675,9 +699,9 @@ describe("ModelRegistry", () => {
 
 			const registry = new ModelRegistry(authStorage, modelsJsonPath);
 			const model = registry.find("minimax-code", "MiniMax-M2.5");
-			expect(model?.compat?.thinkingFormat).toBeUndefined();
-			expect(model?.compat?.reasoningContentField).toBeUndefined();
-			expect(model?.compat?.extraBody).toEqual({ source: "proxy" });
+			expect(model?.protocol?.openai?.thinkingFormat).toBeUndefined();
+			expect(model?.protocol?.openai?.reasoningContentField).toBeUndefined();
+			expect(model?.protocol?.openai?.extraBody).toEqual({ source: "proxy" });
 		});
 
 		test("removing custom models from models.json keeps built-in provider models", async () => {
@@ -764,13 +788,13 @@ describe("ModelRegistry", () => {
 			expect(opus?.name).not.toBe("Custom Sonnet Name");
 		});
 
-		test("model override with compat.openRouterRouting", () => {
+		test("model override with routing.openrouter", () => {
 			writeRawModelsJson({
 				openrouter: {
 					modelOverrides: {
 						"anthropic/claude-sonnet-4": {
-							compat: {
-								openRouterRouting: { only: ["amazon-bedrock"] },
+							routing: {
+								openrouter: { only: ["amazon-bedrock"] },
 							},
 						},
 					},
@@ -781,17 +805,16 @@ describe("ModelRegistry", () => {
 			const models = getModelsForProvider(registry, "openrouter");
 
 			const sonnet = models.find(m => m.id === "anthropic/claude-sonnet-4");
-			const compat = sonnet?.compat as OpenAICompat | undefined;
-			expect(compat?.openRouterRouting).toEqual({ only: ["amazon-bedrock"] });
+			expect(sonnet?.routing?.openrouter).toEqual({ only: ["amazon-bedrock"] });
 		});
 
-		test("model override deep merges compat settings", () => {
+		test("model override deep merges routing settings", () => {
 			writeRawModelsJson({
 				openrouter: {
 					modelOverrides: {
 						"anthropic/claude-sonnet-4": {
-							compat: {
-								openRouterRouting: { order: ["anthropic", "together"] },
+							routing: {
+								openrouter: { order: ["anthropic", "together"] },
 							},
 						},
 					},
@@ -802,24 +825,27 @@ describe("ModelRegistry", () => {
 			const models = getModelsForProvider(registry, "openrouter");
 			const sonnet = models.find(m => m.id === "anthropic/claude-sonnet-4");
 
-			const compat = sonnet?.compat as OpenAICompat | undefined;
-			expect(compat?.openRouterRouting).toEqual({ order: ["anthropic", "together"] });
+			expect(sonnet?.routing?.openrouter).toEqual({ order: ["anthropic", "together"] });
 		});
 
-		test("model override merges compat.extraBody across provider+model", () => {
+		test("model override merges protocol.extraBody across provider+model", () => {
 			writeRawModelsJson({
 				openrouter: {
-					compat: {
-						extraBody: {
-							gateway: "default-gateway",
-							controller: "provider-controller",
+					protocol: {
+						openai: {
+							extraBody: {
+								gateway: "default-gateway",
+								controller: "provider-controller",
+							},
 						},
 					},
 					modelOverrides: {
 						"anthropic/claude-sonnet-4": {
-							compat: {
-								extraBody: {
-									controller: "model-controller",
+							protocol: {
+								openai: {
+									extraBody: {
+										controller: "model-controller",
+									},
 								},
 							},
 						},
@@ -831,8 +857,10 @@ describe("ModelRegistry", () => {
 			const models = getModelsForProvider(registry, "openrouter");
 			const sonnet = models.find(m => m.id === "anthropic/claude-sonnet-4");
 
-			const compat = sonnet?.compat as OpenAICompat | undefined;
-			expect(compat?.extraBody).toEqual({ gateway: "default-gateway", controller: "model-controller" });
+			expect(sonnet?.protocol?.openai?.extraBody).toEqual({
+				gateway: "default-gateway",
+				controller: "model-controller",
+			});
 		});
 
 		test("multiple model overrides on same provider", () => {
@@ -840,10 +868,10 @@ describe("ModelRegistry", () => {
 				openrouter: {
 					modelOverrides: {
 						"anthropic/claude-sonnet-4": {
-							compat: { openRouterRouting: { only: ["amazon-bedrock"] } },
+							routing: { openrouter: { only: ["amazon-bedrock"] } },
 						},
 						"anthropic/claude-opus-4": {
-							compat: { openRouterRouting: { only: ["anthropic"] } },
+							routing: { openrouter: { only: ["anthropic"] } },
 						},
 					},
 				},
@@ -855,10 +883,8 @@ describe("ModelRegistry", () => {
 			const sonnet = models.find(m => m.id === "anthropic/claude-sonnet-4");
 			const opus = models.find(m => m.id === "anthropic/claude-opus-4");
 
-			const sonnetCompat = sonnet?.compat as OpenAICompat | undefined;
-			const opusCompat = opus?.compat as OpenAICompat | undefined;
-			expect(sonnetCompat?.openRouterRouting).toEqual({ only: ["amazon-bedrock"] });
-			expect(opusCompat?.openRouterRouting).toEqual({ only: ["anthropic"] });
+			expect(sonnet?.routing?.openrouter).toEqual({ only: ["amazon-bedrock"] });
+			expect(opus?.routing?.openrouter).toEqual({ only: ["anthropic"] });
 		});
 
 		test("model override combined with baseUrl override", () => {

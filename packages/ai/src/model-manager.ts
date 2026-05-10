@@ -241,8 +241,14 @@ function mergeDynamicModel<TApi extends Api>(existingModel: Model<TApi>, dynamic
 		},
 		contextWindow: preferDiscoveryLimit(dynamicModel.contextWindow, existingModel.contextWindow),
 		maxTokens: preferDiscoveryLimit(dynamicModel.maxTokens, existingModel.maxTokens),
+		maxInputMessageTokens: preferDiscoveryOptionalLimit(
+			dynamicModel.maxInputMessageTokens,
+			existingModel.maxInputMessageTokens,
+		),
 		headers: dynamicModel.headers ? { ...existingModel.headers, ...dynamicModel.headers } : existingModel.headers,
-		compat: dynamicModel.compat ?? existingModel.compat,
+		protocol: dynamicModel.protocol ?? existingModel.protocol,
+		capabilities: dynamicModel.capabilities ?? existingModel.capabilities,
+		routing: dynamicModel.routing ?? existingModel.routing,
 		contextPromotionTarget: dynamicModel.contextPromotionTarget ?? existingModel.contextPromotionTarget,
 	});
 }
@@ -274,6 +280,22 @@ function preferDiscoveryLimit(discoveryLimit: number, fallbackLimit: number): nu
 	}
 	// Context windows only grow — take the larger of discovery and catalog.
 	// Stale discovery metadata must not downgrade a known-correct catalog value.
+	return Math.max(discoveryLimit, fallbackLimit);
+}
+
+function preferDiscoveryOptionalLimit(
+	discoveryLimit: number | undefined,
+	fallbackLimit: number | undefined,
+): number | undefined {
+	if (discoveryLimit === undefined) {
+		return fallbackLimit;
+	}
+	if (!Number.isFinite(discoveryLimit) || discoveryLimit <= 0) {
+		return fallbackLimit;
+	}
+	if (fallbackLimit === undefined) {
+		return discoveryLimit;
+	}
 	return Math.max(discoveryLimit, fallbackLimit);
 }
 
@@ -322,6 +344,14 @@ function isModelLike(value: unknown): value is Model<Api> {
 		return false;
 	}
 	if (typeof value.maxTokens !== "number" || !Number.isFinite(value.maxTokens) || value.maxTokens <= 0) {
+		return false;
+	}
+	if (
+		value.maxInputMessageTokens !== undefined &&
+		(typeof value.maxInputMessageTokens !== "number" ||
+			!Number.isFinite(value.maxInputMessageTokens) ||
+			value.maxInputMessageTokens <= 0)
+	) {
 		return false;
 	}
 	return true;

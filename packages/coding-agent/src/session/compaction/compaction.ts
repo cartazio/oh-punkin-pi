@@ -740,19 +740,23 @@ function buildOpenAiNativeHistory(
 				assistant.model !== model.id && assistant.provider === model.provider && assistant.api === model.api;
 
 			for (const block of assistant.content) {
-				if (block.type === "thinking" && assistant.stopReason !== "error" && block.thinkingSignature) {
-					try {
-						const reasoningItem = JSON.parse(block.thinkingSignature) as Record<string, unknown>;
-						if (reasoningItem && typeof reasoningItem === "object") {
-							input.push(reasoningItem);
+				if (block.type === "thinking" && assistant.stopReason !== "error") {
+					let reasoningItem = block.reasoningItem;
+					if (!reasoningItem && block.thinkingSignature?.startsWith("{")) {
+						try {
+							const parsed = JSON.parse(block.thinkingSignature) as Record<string, unknown>;
+							if (parsed.type === "reasoning") reasoningItem = parsed;
+						} catch {
+							logger.warn("Failed to parse assistant reasoning for remote compaction", {
+								model: assistant.model,
+								provider: assistant.provider,
+							});
 						}
-					} catch {
-						logger.warn("Failed to parse assistant reasoning for remote compaction", {
-							model: assistant.model,
-							provider: assistant.provider,
-						});
 					}
-					continue;
+					if (reasoningItem) {
+						input.push(reasoningItem);
+						continue;
+					}
 				}
 
 				if (block.type === "text") {

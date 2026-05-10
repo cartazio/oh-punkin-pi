@@ -131,8 +131,8 @@ export function convertResponsesAssistantMessage<TApi extends Api>(
 			if (!includeThinkingSignatures) {
 				continue;
 			}
-			if (block.thinkingSignature) {
-				outputItems.push(JSON.parse(block.thinkingSignature) as ResponseReasoningItem);
+			if (block.reasoningItem) {
+				outputItems.push(block.reasoningItem as unknown as ResponseReasoningItem);
 			}
 			continue;
 		}
@@ -365,7 +365,7 @@ export async function processResponsesStream<TApi extends Api>(
 			options?.onOutputItemDone?.(item);
 			if (item.type === "reasoning" && currentBlock?.type === "thinking") {
 				currentBlock.thinking = item.summary?.map(part => part.text).join("\n\n") || "";
-				currentBlock.thinkingSignature = JSON.stringify(item);
+				currentBlock.reasoningItem = item as unknown as Record<string, unknown>;
 				stream.push({
 					type: "thinking_end",
 					contentIndex: blockIndex(),

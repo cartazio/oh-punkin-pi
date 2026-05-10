@@ -66,9 +66,9 @@ export function transformMessages<TApi extends Api>(
 					const sanitized =
 						hasInvalidSignatures && block.thinkingSignature ? { ...block, thinkingSignature: undefined } : block;
 					if (mustPreserveLatestAnthropicThinking) return sanitized;
-					// For same model: keep thinking blocks with signatures (needed for replay)
+					// For same model: keep thinking blocks with replay metadata (needed for replay)
 					// even if the thinking text is empty (OpenAI encrypted reasoning)
-					if (isSameModel && sanitized.thinkingSignature) return sanitized;
+					if (isSameModel && (sanitized.thinkingSignature || sanitized.reasoningItem)) return sanitized;
 					// Skip empty thinking blocks, convert others to plain text
 					if (!sanitized.thinking || sanitized.thinking.trim() === "") return [];
 					if (isSameModel) return sanitized;

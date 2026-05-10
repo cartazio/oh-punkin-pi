@@ -1,7 +1,8 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import { getBundledModel } from "../src/models";
-import { convertMessages, detectCompat, streamOpenAICompletions } from "../src/providers/openai-completions";
-import type { AssistantMessage, Context, Model, OpenAICompat } from "../src/types";
+import { convertMessages, detectModelSettings, streamOpenAICompletions } from "../src/providers/openai-completions";
+import type { ResolvedOpenAIModelSettings } from "../src/providers/openai-completions-compat";
+import type { AssistantMessage, Context, Model } from "../src/types";
 
 const originalFetch = global.fetch;
 
@@ -72,7 +73,7 @@ describe("openai-completions compatibility", () => {
 			supportsReasoningEffort: true,
 			reasoningEffortMap: {},
 			supportsUsageInStreaming: true,
-			supportsToolChoice: true,
+			toolChoice: true,
 			maxTokensField: "max_completion_tokens",
 			requiresToolResultName: false,
 			requiresAssistantAfterToolResult: false,
@@ -82,11 +83,11 @@ describe("openai-completions compatibility", () => {
 			reasoningContentField: "reasoning_content",
 			requiresReasoningContentForToolCalls: false,
 			requiresAssistantContentForToolCalls: false,
-			openRouterRouting: {},
-			vercelGatewayRouting: {},
+			openrouter: {},
+			vercel: {},
 			extraBody: {},
-			supportsStrictMode: true,
-		} satisfies Required<OpenAICompat>;
+			strictToolSchemas: true,
+		} satisfies ResolvedOpenAIModelSettings;
 		const assistantMessage: AssistantMessage = {
 			role: "assistant",
 			content: [
@@ -163,8 +164,10 @@ describe("openai-completions compatibility", () => {
 			...getBundledModel("openai", "gpt-4o-mini"),
 			api: "openai-completions",
 			reasoning: true,
-			compat: {
-				thinkingFormat: "qwen-chat-template",
+			protocol: {
+				openai: {
+					thinkingFormat: "qwen-chat-template",
+				},
 			},
 		};
 		const { promise, resolve } = Promise.withResolvers<unknown>();
@@ -207,14 +210,16 @@ describe("openai-completions compatibility", () => {
 		expect(result.content[0]).toMatchObject({ type: "text", text: "done" });
 	});
 
-	it("injects compat.extraBody into OpenAI payload", async () => {
+	it("injects protocol.openai.extraBody into OpenAI payload", async () => {
 		const model: Model<"openai-completions"> = {
 			...getBundledModel("openai", "gpt-4o-mini"),
 			api: "openai-completions",
-			compat: {
-				extraBody: {
-					gateway: "m1-01",
-					controller: "mlx",
+			protocol: {
+				openai: {
+					extraBody: {
+						gateway: "m1-01",
+						controller: "mlx",
+					},
 				},
 			},
 		};
@@ -232,6 +237,31 @@ describe("openai-completions compatibility", () => {
 			expect.objectContaining({
 				gateway: "m1-01",
 				controller: "mlx",
+			}),
+		);
+	});
+
+	it("injects OpenRouter routing sort into provider payload", async () => {
+		const model: Model<"openai-completions"> = {
+			...getBundledModel("openrouter", "moonshotai/kimi-k2.5"),
+			api: "openai-completions",
+			routing: {
+				openrouter: { sort: "throughput" },
+			},
+		};
+
+		const { promise, resolve } = Promise.withResolvers<unknown>();
+		global.fetch = createMockFetch(["[DONE]"]);
+		streamOpenAICompletions(model, baseContext(), {
+			apiKey: "test-key",
+			signal: createAbortedSignal(),
+			onPayload: payload => resolve(payload),
+		});
+
+		const payload = await promise;
+		expect(payload).toEqual(
+			expect.objectContaining({
+				provider: { sort: "throughput" },
 			}),
 		);
 	});
@@ -268,10 +298,11 @@ describe("openai-completions compatibility", () => {
 		expect(result.content).toContainEqual({
 			type: "thinking",
 			thinking: "inspect tool output",
-			thinkingSignature: "reasoning_text",
+			reasoningField: "reasoning_text",
+			reasoningReplayField: "reasoning_text",
 		});
 
-		const messages = convertMessages(model, { messages: [result] }, detectCompat(model));
+		const messages = convertMessages(model, { messages: [result] }, detectModelSettings(model));
 		const assistant = messages.find(message => message.role === "assistant");
 		expect(assistant).toBeDefined();
 		const assistantObject = toObject(assistant);

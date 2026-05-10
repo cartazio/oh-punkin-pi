@@ -1,6 +1,6 @@
 import type { ModelManagerOptions } from "../model-manager";
 import { getBundledModels, getBundledProviders } from "../models";
-import type { Api, Model } from "../types";
+import type { Api, Model, ModelCapabilities, ModelProtocolHints } from "../types";
 import { isAnthropicOAuthToken, isRecord, toNumber, toPositiveNumber } from "../utils";
 import {
 	fetchOpenAICompatibleModels,
@@ -762,7 +762,7 @@ export function openrouterModelManagerOptions(
 								? topProvider.max_completion_tokens
 								: defaults.maxTokens,
 						...(!supportsToolChoice && {
-							compat: { supportsToolChoice: false },
+							capabilities: { toolChoice: false },
 						}),
 					};
 				},
@@ -1026,10 +1026,12 @@ export function kimiCodeModelManagerOptions(
 							input: entry.supports_image_in === true || id.includes("k2.5") ? ["text", "image"] : ["text"],
 							contextWindow: typeof entry.context_length === "number" ? entry.context_length : 262144,
 							maxTokens: 32000,
-							compat: {
-								thinkingFormat: "zai",
-								reasoningContentField: "reasoning_content",
-								supportsDeveloperRole: false,
+							protocol: {
+								openai: {
+									thinkingFormat: "zai",
+									reasoningContentField: "reasoning_content",
+									supportsDeveloperRole: false,
+								},
 							},
 						};
 					},
@@ -1147,7 +1149,10 @@ export function veniceModelManagerOptions(
 					const model = mapWithBundledReference(entry, defaults, reference);
 					return {
 						...model,
-						compat: { ...model.compat, supportsUsageInStreaming: false },
+						protocol: {
+							...model.protocol,
+							openai: { ...model.protocol?.openai, supportsUsageInStreaming: false },
+						},
 					};
 				},
 			}),
@@ -1617,10 +1622,12 @@ export function githubCopilotModelManagerOptions(config?: GithubCopilotModelMana
 								headers: { ...GITHUB_COPILOT_HEADERS, ...(providerReference?.headers ?? {}) },
 								...(api === "openai-completions"
 									? {
-											compat: {
-												supportsStore: false,
-												supportsDeveloperRole: false,
-												supportsReasoningEffort: false,
+											protocol: {
+												openai: {
+													supportsStore: false,
+													supportsDeveloperRole: false,
+													supportsReasoningEffort: false,
+												},
 											},
 										}
 									: {}),
@@ -1636,10 +1643,12 @@ export function githubCopilotModelManagerOptions(config?: GithubCopilotModelMana
 							headers: { ...GITHUB_COPILOT_HEADERS },
 							...(api === "openai-completions"
 								? {
-										compat: {
-											supportsStore: false,
-											supportsDeveloperRole: false,
-											supportsReasoningEffort: false,
+										protocol: {
+											openai: {
+												supportsStore: false,
+												supportsDeveloperRole: false,
+												supportsReasoningEffort: false,
+											},
 										},
 									}
 								: {}),
@@ -1732,8 +1741,10 @@ export interface ModelsDevProviderDescriptor {
 	defaultContextWindow?: number;
 	/** Default max tokens fallback (default: UNKNNOWN_MAX_TOKENS) */
 	defaultMaxTokens?: number;
-	/** Optional compat overrides applied to every model from this provider */
-	compat?: Model<Api>["compat"];
+	/** Optional protocol overrides applied to every model from this provider */
+	protocol?: ModelProtocolHints<Api>;
+	/** Optional capability overrides applied to every model from this provider */
+	capabilities?: ModelCapabilities;
 	/** Optional static headers applied to every model */
 	headers?: Record<string, string>;
 	/**
@@ -1795,7 +1806,8 @@ export function mapModelsDevToModels(
 				},
 				contextWindow: toPositiveNumber(m.limit?.context, desc.defaultContextWindow ?? UNK_CONTEXT_WINDOW),
 				maxTokens: toPositiveNumber(m.limit?.output, desc.defaultMaxTokens ?? UNK_MAX_TOKENS),
-				...(desc.compat && { compat: desc.compat }),
+				...(desc.protocol && { protocol: desc.protocol }),
+				...(desc.capabilities && { capabilities: desc.capabilities }),
 				...(desc.headers && { headers: { ...desc.headers } }),
 			};
 
@@ -2033,19 +2045,23 @@ const MODELS_DEV_PROVIDER_DESCRIPTORS_CODING_PLANS: readonly ModelsDevProviderDe
 	}),
 	// --- MiniMax Coding Plan ---
 	openAiCompletionsDescriptor("minimax-coding-plan", "minimax-code", "https://api.minimax.io/v1", {
-		compat: {
-			supportsStore: false,
-			supportsDeveloperRole: false,
-			thinkingFormat: "zai",
-			reasoningContentField: "reasoning_content",
+		protocol: {
+			openai: {
+				supportsStore: false,
+				supportsDeveloperRole: false,
+				thinkingFormat: "zai",
+				reasoningContentField: "reasoning_content",
+			},
 		},
 	}),
 	openAiCompletionsDescriptor("minimax-cn-coding-plan", "minimax-code-cn", "https://api.minimaxi.com/v1", {
-		compat: {
-			supportsStore: false,
-			supportsDeveloperRole: false,
-			thinkingFormat: "zai",
-			reasoningContentField: "reasoning_content",
+		protocol: {
+			openai: {
+				supportsStore: false,
+				supportsDeveloperRole: false,
+				thinkingFormat: "zai",
+				reasoningContentField: "reasoning_content",
+			},
 		},
 	}),
 	// --- Alibaba Coding Plan ---
@@ -2054,8 +2070,10 @@ const MODELS_DEV_PROVIDER_DESCRIPTORS_CODING_PLANS: readonly ModelsDevProviderDe
 		"alibaba-coding-plan",
 		"https://coding-intl.dashscope.aliyuncs.com/v1",
 		{
-			compat: {
-				supportsDeveloperRole: false,
+			protocol: {
+				openai: {
+					supportsDeveloperRole: false,
+				},
 			},
 		},
 	),
@@ -2117,10 +2135,12 @@ const MODELS_DEV_PROVIDER_DESCRIPTORS_SPECIALIZED: readonly ModelsDevProviderDes
 			if (model.api === "openai-completions") {
 				return {
 					...model,
-					compat: {
-						supportsStore: false,
-						supportsDeveloperRole: false,
-						supportsReasoningEffort: false,
+					protocol: {
+						openai: {
+							supportsStore: false,
+							supportsDeveloperRole: false,
+							supportsReasoningEffort: false,
+						},
 					},
 				};
 			}

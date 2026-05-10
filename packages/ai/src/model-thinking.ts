@@ -1,4 +1,4 @@
-import { resolveOpenAICompat } from "./providers/openai-completions-compat";
+import { resolveOpenAIModelSettings } from "./providers/openai-completions-compat";
 import type { Api, Model as ApiModel, ThinkingConfig } from "./types";
 
 /** User-facing thinking levels, ordered least to most intensive. */
@@ -410,8 +410,8 @@ function inferFallbackEfforts<TApi extends Api>(model: ApiModel<TApi>): readonly
 		return DEFAULT_REASONING_EFFORTS;
 	}
 	if (model.api === "openai-completions") {
-		const compat = resolveOpenAICompat(model as ApiModel<"openai-completions">);
-		if (compat.thinkingFormat === "openai" && compat.supportsReasoningEffort) {
+		const settings = resolveOpenAIModelSettings(model as ApiModel<"openai-completions">);
+		if (settings.thinkingFormat === "openai" && settings.supportsReasoningEffort) {
 			return DEFAULT_REASONING_EFFORTS_WITH_XHIGH;
 		}
 		return DEFAULT_REASONING_EFFORTS;

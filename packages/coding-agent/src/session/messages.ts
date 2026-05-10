@@ -311,12 +311,25 @@ export function sanitizeRehydratedOpenAIResponsesAssistantMessage(message: Assis
 
 	let didSanitizeContent = false;
 	const sanitizedContent = message.content.map(block => {
-		if (block.type !== "thinking" || block.thinkingSignature === undefined) {
+		if (block.type !== "thinking") {
+			return block;
+		}
+		const hasNativeReasoningItem = block.reasoningItem !== undefined;
+		const hasLegacyReasoningItemSignature = (() => {
+			if (!block.thinkingSignature?.startsWith("{")) return false;
+			try {
+				const parsed = JSON.parse(block.thinkingSignature) as Record<string, unknown>;
+				return parsed.type === "reasoning";
+			} catch {
+				return false;
+			}
+		})();
+		if (!hasNativeReasoningItem && !hasLegacyReasoningItemSignature) {
 			return block;
 		}
 
 		didSanitizeContent = true;
-		return { ...block, thinkingSignature: undefined };
+		return { ...block, reasoningItem: undefined, thinkingSignature: undefined };
 	});
 
 	// Strip the assistant-side native replay payload entirely.

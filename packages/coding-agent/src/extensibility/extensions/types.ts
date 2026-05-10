@@ -1211,8 +1211,12 @@ export interface ProviderModelConfig {
 	maxTokens: number;
 	/** Custom headers for this model. */
 	headers?: Record<string, string>;
-	/** OpenAI compatibility settings. */
-	compat?: Model<Api>["compat"];
+	/** OpenAI-compatible protocol/request settings. */
+	protocol?: Model<Api>["protocol"];
+	/** Capability overrides. */
+	capabilities?: Model<Api>["capabilities"];
+	/** Routing policy. */
+	routing?: Model<Api>["routing"];
 }
 
 /** Extension factory function type. Supports both sync and async initialization. */

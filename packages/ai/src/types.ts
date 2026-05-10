@@ -257,10 +257,19 @@ export interface TextContent {
 	textSignature?: string; // e.g., for OpenAI responses, message metadata (legacy id string or TextSignatureV1 JSON)
 }
 
+export type OpenAIReasoningContentField = "reasoning_content" | "reasoning" | "reasoning_text";
+
 export interface ThinkingContent {
 	type: "thinking";
 	thinking: string;
-	thinkingSignature?: string; // e.g., for OpenAI responses, the reasoning item ID
+	/** Provider-native opaque signature for replay (Anthropic/Bedrock/Gemini thought signatures). */
+	thinkingSignature?: string;
+	/** OpenAI-compatible response field that produced this reasoning text. */
+	reasoningField?: OpenAIReasoningContentField;
+	/** OpenAI-compatible response field to use when replaying this reasoning text. */
+	reasoningReplayField?: OpenAIReasoningContentField;
+	/** Provider-native reasoning item for Responses/Codex APIs. */
+	reasoningItem?: Record<string, unknown>;
 }
 
 export interface RedactedThinkingContent {
@@ -437,11 +446,8 @@ export type AssistantMessageEvent =
 	| { type: "done"; reason: Extract<StopReason, "stop" | "length" | "toolUse">; message: AssistantMessage }
 	| { type: "error"; reason: Extract<StopReason, "aborted" | "error">; error: AssistantMessage };
 
-/**
- * Compatibility settings for openai-completions API.
- * Use this to override URL-based auto-detection for custom providers.
- */
-export interface OpenAICompat {
+/** OpenAI-compatible protocol/request encoding hints. */
+export interface OpenAIProtocolHints {
 	/** Whether the provider supports the `store` field. Default: auto-detected from URL. */
 	supportsStore?: boolean;
 	/** Whether the provider supports the `developer` role (vs `system`). Default: auto-detected from URL. */
@@ -462,24 +468,34 @@ export interface OpenAICompat {
 	requiresThinkingAsText?: boolean;
 	/** Whether tool call IDs must be normalized to Mistral format (exactly 9 alphanumeric chars). Default: auto-detected from URL. */
 	requiresMistralToolIds?: boolean;
-	/** Format for reasoning/thinking parameter. "openai" uses reasoning_effort, "openrouter" uses reasoning: { effort }, "zai" uses thinking: { type: "enabled" }, "qwen" uses top-level enable_thinking, and "qwen-chat-template" uses chat_template_kwargs.enable_thinking. Default: "openai". */
+	/** Format for reasoning/thinking parameter. Default: "openai". */
 	thinkingFormat?: "openai" | "openrouter" | "zai" | "qwen" | "qwen-chat-template";
 	/** Which reasoning content field to emit on assistant messages. Default: auto-detected. */
-	reasoningContentField?: "reasoning_content" | "reasoning" | "reasoning_text";
+	reasoningContentField?: OpenAIReasoningContentField;
 	/** Whether assistant tool-call messages must include reasoning content. Default: false. */
 	requiresReasoningContentForToolCalls?: boolean;
 	/** Whether assistant tool-call messages must include non-empty content. Default: false. */
 	requiresAssistantContentForToolCalls?: boolean;
-	/** Whether the provider supports the `tool_choice` parameter. Default: true. */
-	supportsToolChoice?: boolean;
-	/** OpenRouter-specific routing preferences. Only used when baseUrl points to OpenRouter. */
-	openRouterRouting?: OpenRouterRouting;
-	/** Vercel AI Gateway routing preferences. Only used when baseUrl points to Vercel AI Gateway. */
-	vercelGatewayRouting?: VercelGatewayRouting;
 	/** Extra fields to include in request body (e.g. gateway routing hints for OpenClaw-style proxies). */
 	extraBody?: Record<string, unknown>;
-	/** Whether the provider supports the `strict` field in tool definitions. Default: auto-detected per provider/baseUrl (conservative for unknown providers). */
-	supportsStrictMode?: boolean;
+}
+
+export interface ModelProtocolHints<TApi extends Api = Api> {
+	openai?: TApi extends "openai-completions" ? OpenAIProtocolHints : never;
+}
+
+export interface ModelCapabilities {
+	/** Whether the provider supports the `tool_choice` parameter. Default: true for OpenAI-compatible APIs. */
+	toolChoice?: boolean;
+	/** Whether the provider supports strict tool schemas. Default: auto-detected per provider/baseUrl. */
+	strictToolSchemas?: boolean;
+	/** Raw provider-advertised supported parameter names, when available. */
+	supportedParameters?: string[];
+}
+
+export interface ModelRoutingPolicy {
+	openrouter?: OpenRouterRouting;
+	vercel?: VercelGatewayRouting;
 }
 
 /**
@@ -492,6 +508,8 @@ export interface OpenRouterRouting {
 	only?: string[];
 	/** List of provider slugs to try in order (e.g., ["anthropic", "openai"]). */
 	order?: string[];
+	/** Sort upstream providers by OpenRouter routing policy. `:nitro` maps to throughput; `:floor` maps to price. */
+	sort?: "price" | "throughput" | "latency";
 }
 
 /**
@@ -525,6 +543,8 @@ export interface Model<TApi extends Api = any> {
 	premiumMultiplier?: number;
 	contextWindow: number;
 	maxTokens: number;
+	/** Maximum tokens allowed in a single input message, regardless of attribution/source. */
+	maxInputMessageTokens?: number;
 	headers?: Record<string, string>;
 	/** Hint that websocket transport should be preferred when supported by the provider implementation. */
 	preferWebsockets?: boolean;
@@ -534,6 +554,7 @@ export interface Model<TApi extends Api = any> {
 	priority?: number;
 	/** Canonical thinking capability metadata for this model. */
 	thinking?: ThinkingConfig;
-	/** Compatibility overrides for openai-completions API. If not set, auto-detected from baseUrl. */
-	compat?: TApi extends "openai-completions" ? OpenAICompat : never;
+	protocol?: ModelProtocolHints<TApi>;
+	capabilities?: ModelCapabilities;
+	routing?: ModelRoutingPolicy;
 }

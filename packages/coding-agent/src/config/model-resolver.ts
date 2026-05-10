@@ -17,6 +17,7 @@ import MODEL_PRIO from "../priority.json" with { type: "json" };
 import { parseThinkingLevel, resolveThinkingLevelForModel } from "../thinking";
 import { fuzzyMatch } from "../utils/fuzzy";
 import { MODEL_ROLE_IDS, type ModelRegistry, type ModelRole } from "./model-registry";
+import { findOpenRouterModelModifierMatch } from "./openrouter-model-modifiers";
 import type { Settings } from "./settings";
 
 /** Default model IDs for each known provider */
@@ -190,6 +191,11 @@ export function findExactModelReferenceMatch(
 			}
 			if (providerMatches.length > 1) {
 				return undefined;
+			}
+
+			const modifierMatch = findOpenRouterModelModifierMatch(provider, modelId, availableModels);
+			if (modifierMatch) {
+				return modifierMatch;
 			}
 		}
 	}
@@ -799,6 +805,11 @@ export function resolveCliModel(options: {
 		if (cliModel.toLowerCase().startsWith(prefix.toLowerCase())) {
 			pattern = cliModel.substring(prefix.length);
 		}
+	}
+
+	const modifierMatch = provider ? findOpenRouterModelModifierMatch(provider, pattern, availableModels) : undefined;
+	if (modifierMatch) {
+		return { model: modifierMatch, warning: undefined, thinkingLevel: undefined, error: undefined };
 	}
 
 	const candidates = provider ? availableModels.filter(model => model.provider === provider) : availableModels;

@@ -962,7 +962,7 @@ function handleOutputItemDone(
 
 	if (item.type === "reasoning" && runtime.currentBlock?.type === "thinking") {
 		runtime.currentBlock.thinking = item.summary?.map(summary => summary.text).join("\n\n") || "";
-		runtime.currentBlock.thinkingSignature = JSON.stringify(item);
+		runtime.currentBlock.reasoningItem = item as unknown as Record<string, unknown>;
 		stream.push({
 			type: "thinking_end",
 			contentIndex: blockIndex(),
@@ -2121,8 +2121,8 @@ function convertMessages(model: Model<"openai-codex-responses">, context: Contex
 			const outputItems: ResponseInput = [];
 			for (const block of msg.content) {
 				if (block.type === "thinking" && msg.stopReason !== "error") {
-					if (block.thinkingSignature) {
-						outputItems.push(JSON.parse(block.thinkingSignature) as ResponseReasoningItem);
+					if (block.reasoningItem) {
+						outputItems.push(block.reasoningItem as unknown as ResponseReasoningItem);
 					}
 					continue;
 				}

@@ -48,7 +48,11 @@ import {
 	hasCopilotVisionInput,
 	resolveGitHubCopilotBaseUrl,
 } from "./github-copilot-headers";
-import { detectOpenAICompat, type ResolvedOpenAICompat, resolveOpenAICompat } from "./openai-completions-compat";
+import {
+	detectOpenAIModelSettings,
+	type ResolvedOpenAIModelSettings,
+	resolveOpenAIModelSettings,
+} from "./openai-completions-compat";
 import { transformMessages } from "./transform-messages";
 
 /**
@@ -272,15 +276,15 @@ export const streamOpenAICompletions: StreamFunction<"openai-completions"> = (
 				message: AssistantMessage,
 				eventStream: AssistantMessageEventStream,
 				thinking: string,
-				signature?: string,
+				reasoningField?: "reasoning_content" | "reasoning" | "reasoning_text",
 			): void => {
 				if (
 					!currentBlock ||
 					currentBlock.type !== "thinking" ||
-					(signature !== undefined && currentBlock.thinkingSignature !== signature)
+					(reasoningField !== undefined && currentBlock.reasoningField !== reasoningField)
 				) {
 					finishCurrentBlock(currentBlock);
-					currentBlock = { type: "thinking", thinking: "", thinkingSignature: signature };
+					currentBlock = { type: "thinking", thinking: "", reasoningField, reasoningReplayField: reasoningField };
 					message.content.push(currentBlock);
 					eventStream.push({
 						type: "thinking_start",
@@ -288,8 +292,9 @@ export const streamOpenAICompletions: StreamFunction<"openai-completions"> = (
 						partial: message,
 					});
 				}
-				if (signature !== undefined && !currentBlock.thinkingSignature) {
-					currentBlock.thinkingSignature = signature;
+				if (reasoningField !== undefined && !currentBlock.reasoningField) {
+					currentBlock.reasoningField = reasoningField;
+					currentBlock.reasoningReplayField = reasoningField;
 				}
 				currentBlock.thinking += thinking;
 				eventStream.push({
@@ -307,10 +312,13 @@ export const streamOpenAICompletions: StreamFunction<"openai-completions"> = (
 				if (!firstTokenTime) firstTokenTime = Date.now();
 				appendText(output, stream, text);
 			};
-			const appendThinkingDelta = (thinking: string, signature?: string) => {
+			const appendThinkingDelta = (
+				thinking: string,
+				reasoningField?: "reasoning_content" | "reasoning" | "reasoning_text",
+			) => {
 				if (!thinking) return;
 				if (!firstTokenTime) firstTokenTime = Date.now();
-				appendThinking(output, stream, thinking, signature);
+				appendThinking(output, stream, thinking, reasoningField);
 			};
 
 			const flushTaggedTextBuffer = () => {
@@ -399,8 +407,8 @@ export const streamOpenAICompletions: StreamFunction<"openai-completions"> = (
 					// or reasoning (other openai compatible endpoints)
 					// Use the first non-empty reasoning field to avoid duplication
 					// (e.g., chutes.ai returns both reasoning_content and reasoning with same content)
-					const reasoningFields = ["reasoning_content", "reasoning", "reasoning_text"];
-					let foundReasoningField: string | null = null;
+					const reasoningFields = ["reasoning_content", "reasoning", "reasoning_text"] as const;
+					let foundReasoningField: (typeof reasoningFields)[number] | null = null;
 					for (const field of reasoningFields) {
 						if (
 							(choice.delta as any)[field] !== null &&
@@ -584,7 +592,7 @@ function buildParams(
 	options: OpenAICompletionsOptions | undefined,
 	resolvedBaseUrl?: string,
 ) {
-	const compat = getCompat(model, resolvedBaseUrl);
+	const compat = getModelSettings(model, resolvedBaseUrl);
 	const messages = convertMessages(model, context, compat);
 	maybeAddOpenRouterAnthropicCacheControl(model, messages);
 
@@ -645,7 +653,7 @@ function buildParams(
 		params.tools = [];
 	}
 
-	if (options?.toolChoice && compat.supportsToolChoice) {
+	if (options?.toolChoice && compat.toolChoice) {
 		params.tool_choice = mapToOpenAICompletionsToolChoice(options.toolChoice);
 	}
 
@@ -670,13 +678,13 @@ function buildParams(
 	}
 
 	// OpenRouter provider routing preferences
-	if (model.baseUrl.includes("openrouter.ai") && compat.openRouterRouting) {
-		Reflect.set(params, "provider", compat.openRouterRouting);
+	if (model.baseUrl.includes("openrouter.ai") && compat.openrouter) {
+		Reflect.set(params, "provider", compat.openrouter);
 	}
 
 	// Vercel AI Gateway provider routing preferences
-	if (model.baseUrl.includes("ai-gateway.vercel.sh") && model.compat?.vercelGatewayRouting) {
-		const routing = model.compat.vercelGatewayRouting;
+	if (model.baseUrl.includes("ai-gateway.vercel.sh") && compat.vercel) {
+		const routing = compat.vercel;
 		if (routing.only || routing.order) {
 			const gatewayOptions: Record<string, string[]> = {};
 			if (routing.only) gatewayOptions.only = routing.only;
@@ -777,7 +785,7 @@ function maybeAddOpenRouterAnthropicCacheControl(
 export function convertMessages(
 	model: Model<"openai-completions">,
 	context: Context,
-	compat: ResolvedOpenAICompat,
+	compat: ResolvedOpenAIModelSettings,
 ): ChatCompletionMessageParam[] {
 	const params: ChatCompletionMessageParam[] = [];
 
@@ -926,22 +934,20 @@ export function convertMessages(
 						assistantMsg.content = [{ type: "text", text: thinkingText }];
 					}
 				} else {
-					// Use the signature from the first thinking block if available (for llama.cpp server + gpt-oss)
-					const signature = nonEmptyThinkingBlocks[0].thinkingSignature;
-					if (signature && signature.length > 0) {
-						(assistantMsg as any)[signature] = nonEmptyThinkingBlocks.map(b => b.thinking).join("\n");
+					const reasoningReplayField =
+						nonEmptyThinkingBlocks[0].reasoningReplayField ?? nonEmptyThinkingBlocks[0].reasoningField;
+					if (reasoningReplayField) {
+						(assistantMsg as any)[reasoningReplayField] = nonEmptyThinkingBlocks.map(b => b.thinking).join("\n");
 					}
 				}
 			}
 
 			if (compat.thinkingFormat === "openai") {
-				const streamedReasoningField = nonEmptyThinkingBlocks[0]?.thinkingSignature;
 				const reasoningField =
-					streamedReasoningField === "reasoning_content" ||
-					streamedReasoningField === "reasoning" ||
-					streamedReasoningField === "reasoning_text"
-						? streamedReasoningField
-						: (compat.reasoningContentField ?? "reasoning_content");
+					nonEmptyThinkingBlocks[0]?.reasoningReplayField ??
+					nonEmptyThinkingBlocks[0]?.reasoningField ??
+					compat.reasoningContentField ??
+					"reasoning_content";
 				const reasoningContent = (assistantMsg as any)[reasoningField];
 				if (!reasoningContent) {
 					const reasoning = (assistantMsg as any).reasoning;
@@ -1096,9 +1102,12 @@ export function convertMessages(
 	return params;
 }
 
-function convertTools(tools: Tool[], compat: ResolvedOpenAICompat): OpenAI.Chat.Completions.ChatCompletionTool[] {
+function convertTools(
+	tools: Tool[],
+	compat: ResolvedOpenAIModelSettings,
+): OpenAI.Chat.Completions.ChatCompletionTool[] {
 	return tools.map(tool => {
-		const strict = !NO_STRICT && compat.supportsStrictMode !== false && tool.strict !== false;
+		const strict = !NO_STRICT && compat.strictToolSchemas !== false && tool.strict !== false;
 		const baseParameters = tool.parameters as unknown as Record<string, unknown>;
 		const { schema: parameters, strict: effectiveStrict } = adaptSchemaForStrict(baseParameters, strict);
 		return {
@@ -1143,18 +1152,19 @@ function mapStopReason(reason: ChatCompletionChunk.Choice["finish_reason"] | str
 /**
  * Detect compatibility settings from provider and baseUrl for known providers.
  * Provider takes precedence over URL-based detection since it's explicitly configured.
- * Returns a fully resolved OpenAICompat object with all fields set.
+ * Returns fully resolved OpenAI-compatible model settings.
  */
-export function detectCompat(model: Model<"openai-completions">): ResolvedOpenAICompat {
-	return detectOpenAICompat(model);
+export function detectModelSettings(model: Model<"openai-completions">): ResolvedOpenAIModelSettings {
+	return detectOpenAIModelSettings(model);
 }
 
 /**
- * Get resolved compatibility settings for a model.
- * Uses explicit model.compat if provided, otherwise auto-detects from provider/URL.
+/**
+ * Get resolved OpenAI-compatible model settings.
+ * Uses explicit model protocol/capability/routing mixins if provided, otherwise auto-detects from provider/URL.
  * @param model - The model configuration
  * @param resolvedBaseUrl - Optional resolved base URL (e.g., after GitHub Copilot proxy-ep resolution).
  */
-function getCompat(model: Model<"openai-completions">, resolvedBaseUrl?: string): ResolvedOpenAICompat {
-	return resolveOpenAICompat(model, resolvedBaseUrl);
+function getModelSettings(model: Model<"openai-completions">, resolvedBaseUrl?: string): ResolvedOpenAIModelSettings {
+	return resolveOpenAIModelSettings(model, resolvedBaseUrl);
 }

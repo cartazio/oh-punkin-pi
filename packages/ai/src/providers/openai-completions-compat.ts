@@ -1,13 +1,13 @@
-import type { Model, OpenAICompat } from "../types";
+import type { Model, ModelCapabilities, ModelRoutingPolicy, OpenAIProtocolHints } from "../types";
 
 type OpenAIReasoningEffort = "minimal" | "low" | "medium" | "high" | "xhigh";
 
-export type ResolvedOpenAICompat = Required<
-	Omit<OpenAICompat, "openRouterRouting" | "vercelGatewayRouting" | "extraBody">
-> & {
-	openRouterRouting?: OpenAICompat["openRouterRouting"];
-	vercelGatewayRouting?: OpenAICompat["vercelGatewayRouting"];
-	extraBody?: OpenAICompat["extraBody"];
+export type ResolvedOpenAIModelSettings = Required<Omit<OpenAIProtocolHints, "extraBody">> & {
+	extraBody?: OpenAIProtocolHints["extraBody"];
+	toolChoice: boolean;
+	strictToolSchemas: boolean;
+	openrouter?: ModelRoutingPolicy["openrouter"];
+	vercel?: ModelRoutingPolicy["vercel"];
 };
 
 function detectStrictModeSupport(provider: string, baseUrl: string): boolean {
@@ -40,7 +40,10 @@ function detectStrictModeSupport(provider: string, baseUrl: string): boolean {
  * @param resolvedBaseUrl - Optional resolved base URL (e.g., after GitHub Copilot proxy-ep resolution).
  *                           If provided, this takes precedence over model.baseUrl for URL-based checks.
  */
-export function detectOpenAICompat(model: Model<"openai-completions">, resolvedBaseUrl?: string): ResolvedOpenAICompat {
+export function detectOpenAIModelSettings(
+	model: Model<"openai-completions">,
+	resolvedBaseUrl?: string,
+): ResolvedOpenAIModelSettings {
 	const provider = model.provider;
 	// Use resolvedBaseUrl if provided (e.g., after GitHub Copilot proxy-ep resolution)
 	const baseUrl = resolvedBaseUrl ?? model.baseUrl;
@@ -70,7 +73,7 @@ export function detectOpenAICompat(model: Model<"openai-completions">, resolvedB
 	const isGrok = provider === "xai" || baseUrl.includes("api.x.ai");
 	const isMistral = provider === "mistral" || baseUrl.includes("mistral.ai");
 
-	const reasoningEffortMap: NonNullable<OpenAICompat["reasoningEffortMap"]> =
+	const reasoningEffortMap: NonNullable<OpenAIProtocolHints["reasoningEffortMap"]> =
 		provider === "groq" && model.id === "qwen/qwen3-32b"
 			? ({
 					minimal: "default",
@@ -87,7 +90,7 @@ export function detectOpenAICompat(model: Model<"openai-completions">, resolvedB
 		supportsReasoningEffort: !isGrok && !isZai,
 		reasoningEffortMap,
 		supportsUsageInStreaming: !isCerebras,
-		supportsToolChoice: true,
+		toolChoice: true,
 		maxTokensField: useMaxTokens ? "max_tokens" : "max_completion_tokens",
 		requiresToolResultName: isMistral,
 		requiresAssistantAfterToolResult: false,
@@ -103,51 +106,54 @@ export function detectOpenAICompat(model: Model<"openai-completions">, resolvedB
 		reasoningContentField: "reasoning_content",
 		requiresReasoningContentForToolCalls: isKimiModel,
 		requiresAssistantContentForToolCalls: isKimiModel,
-		openRouterRouting: undefined,
-		vercelGatewayRouting: undefined,
-		supportsStrictMode: detectStrictModeSupport(provider, baseUrl),
+		openrouter: undefined,
+		vercel: undefined,
+		strictToolSchemas: detectStrictModeSupport(provider, baseUrl),
 		extraBody: undefined,
 	};
 }
 
 /**
- * Resolve compatibility settings by layering explicit model.compat overrides onto
- * the detected defaults. This is the canonical compat view for both metadata and transport.
+ * Resolve OpenAI-compatible model settings by layering explicit model mixins onto
+ * the detected defaults. This is the canonical view for both metadata and transport.
  * @param model - The model configuration
  * @param resolvedBaseUrl - Optional resolved base URL (e.g., after GitHub Copilot proxy-ep resolution).
  *                           If provided, this takes precedence over model.baseUrl for URL-based checks.
  */
-export function resolveOpenAICompat(
+export function resolveOpenAIModelSettings(
 	model: Model<"openai-completions">,
 	resolvedBaseUrl?: string,
-): ResolvedOpenAICompat {
-	const detected = detectOpenAICompat(model, resolvedBaseUrl);
-	if (!model.compat) {
+): ResolvedOpenAIModelSettings {
+	const detected = detectOpenAIModelSettings(model, resolvedBaseUrl);
+	const protocol = model.protocol?.openai;
+	const capabilities: ModelCapabilities | undefined = model.capabilities;
+	const routing: ModelRoutingPolicy | undefined = model.routing;
+	if (!protocol && !capabilities && !routing) {
 		return detected;
 	}
 
 	return {
-		supportsStore: model.compat.supportsStore ?? detected.supportsStore,
-		supportsDeveloperRole: model.compat.supportsDeveloperRole ?? detected.supportsDeveloperRole,
-		supportsReasoningEffort: model.compat.supportsReasoningEffort ?? detected.supportsReasoningEffort,
-		reasoningEffortMap: model.compat.reasoningEffortMap ?? detected.reasoningEffortMap,
-		supportsUsageInStreaming: model.compat.supportsUsageInStreaming ?? detected.supportsUsageInStreaming,
-		supportsToolChoice: model.compat.supportsToolChoice ?? detected.supportsToolChoice,
-		maxTokensField: model.compat.maxTokensField ?? detected.maxTokensField,
-		requiresToolResultName: model.compat.requiresToolResultName ?? detected.requiresToolResultName,
+		supportsStore: protocol?.supportsStore ?? detected.supportsStore,
+		supportsDeveloperRole: protocol?.supportsDeveloperRole ?? detected.supportsDeveloperRole,
+		supportsReasoningEffort: protocol?.supportsReasoningEffort ?? detected.supportsReasoningEffort,
+		reasoningEffortMap: protocol?.reasoningEffortMap ?? detected.reasoningEffortMap,
+		supportsUsageInStreaming: protocol?.supportsUsageInStreaming ?? detected.supportsUsageInStreaming,
+		toolChoice: capabilities?.toolChoice ?? detected.toolChoice,
+		maxTokensField: protocol?.maxTokensField ?? detected.maxTokensField,
+		requiresToolResultName: protocol?.requiresToolResultName ?? detected.requiresToolResultName,
 		requiresAssistantAfterToolResult:
-			model.compat.requiresAssistantAfterToolResult ?? detected.requiresAssistantAfterToolResult,
-		requiresThinkingAsText: model.compat.requiresThinkingAsText ?? detected.requiresThinkingAsText,
-		requiresMistralToolIds: model.compat.requiresMistralToolIds ?? detected.requiresMistralToolIds,
-		thinkingFormat: model.compat.thinkingFormat ?? detected.thinkingFormat,
-		reasoningContentField: model.compat.reasoningContentField ?? detected.reasoningContentField,
+			protocol?.requiresAssistantAfterToolResult ?? detected.requiresAssistantAfterToolResult,
+		requiresThinkingAsText: protocol?.requiresThinkingAsText ?? detected.requiresThinkingAsText,
+		requiresMistralToolIds: protocol?.requiresMistralToolIds ?? detected.requiresMistralToolIds,
+		thinkingFormat: protocol?.thinkingFormat ?? detected.thinkingFormat,
+		reasoningContentField: protocol?.reasoningContentField ?? detected.reasoningContentField,
 		requiresReasoningContentForToolCalls:
-			model.compat.requiresReasoningContentForToolCalls ?? detected.requiresReasoningContentForToolCalls,
+			protocol?.requiresReasoningContentForToolCalls ?? detected.requiresReasoningContentForToolCalls,
 		requiresAssistantContentForToolCalls:
-			model.compat.requiresAssistantContentForToolCalls ?? detected.requiresAssistantContentForToolCalls,
-		openRouterRouting: model.compat.openRouterRouting ?? detected.openRouterRouting,
-		vercelGatewayRouting: model.compat.vercelGatewayRouting ?? detected.vercelGatewayRouting,
-		supportsStrictMode: model.compat.supportsStrictMode ?? detected.supportsStrictMode,
-		extraBody: model.compat.extraBody,
+			protocol?.requiresAssistantContentForToolCalls ?? detected.requiresAssistantContentForToolCalls,
+		openrouter: routing?.openrouter ?? detected.openrouter,
+		vercel: routing?.vercel ?? detected.vercel,
+		strictToolSchemas: capabilities?.strictToolSchemas ?? detected.strictToolSchemas,
+		extraBody: protocol?.extraBody,
 	};
 }
