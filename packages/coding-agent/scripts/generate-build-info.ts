@@ -22,7 +22,13 @@ async function gitCommand(args: string[]): Promise<string | null> {
 
 const [hashResult, statusResult] = await Promise.all([
 	gitCommand(["rev-parse", "--short", "HEAD"]),
-	gitCommand(["status", "--porcelain"]),
+	gitCommand([
+		"status",
+		"--porcelain",
+		"--untracked-files=no",
+		"--",
+		":!packages/coding-agent/scripts/generate-build-info.ts",
+	]),
 ]);
 
 const gitHash = hashResult ?? "unknown";
